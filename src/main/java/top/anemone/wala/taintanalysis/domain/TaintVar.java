@@ -17,6 +17,21 @@ public class TaintVar {
 
     public final Context context;
     public final List<TaintVar> propagateTaintVars;
+    private final Set<Statement> prevStatements;
+
+    public Set<Statement> getPrevStatements() {
+        return prevStatements;
+    }
+
+    public void addPrevStatements(Statement prevStatement) {
+        this.prevStatements.add(prevStatement);
+    }
+
+    public void reloadPrevStatements(Set<Statement> prevStatements) {
+        this.prevStatements.clear();
+        this.prevStatements.addAll(prevStatements);
+    }
+
     public final IMethod method;
     public final SSAInstruction inst;
     public int varNo;
@@ -53,6 +68,7 @@ public class TaintVar {
         this.inst = defInst;
         this.fields = new HashMap<>();
         this.type = Type.DEF;
+        this.prevStatements=new HashSet<>();
     }
 
     public TaintVar(int varNo, Context context, IMethod method, SSAInstruction defInst, Type type) {
@@ -63,6 +79,7 @@ public class TaintVar {
         this.inst = defInst;
         this.fields = new HashMap<>();
         this.type = type;
+        this.prevStatements=new HashSet<>();
     }
 
     @Deprecated

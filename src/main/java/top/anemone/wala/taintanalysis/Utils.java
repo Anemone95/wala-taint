@@ -15,7 +15,7 @@ public class Utils {
         int idx = taintVars.getMappedIndex(taintVar);
         boolean hasTaint = idx != -1 && rhs.get(idx);
         if (hasTaint){
-            return taintVar;
+            return taintVars.getMappedObject(idx);
         }
         for (TaintVar field : taintVar.fields.values()) {
             if (!book.contains(field)){
