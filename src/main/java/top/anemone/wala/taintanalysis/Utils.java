@@ -2,6 +2,7 @@ package top.anemone.wala.taintanalysis;
 
 import com.ibm.wala.fixpoint.BitVectorVariable;
 import com.ibm.wala.util.intset.OrdinalSetMapping;
+import top.anemone.wala.taintanalysis.domain.TaintVar;
 
 import java.util.HashSet;
 import java.util.Set;

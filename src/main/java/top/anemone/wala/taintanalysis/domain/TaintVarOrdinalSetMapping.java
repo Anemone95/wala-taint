@@ -1,4 +1,4 @@
-package top.anemone.wala.taintanalysis;
+package top.anemone.wala.taintanalysis.domain;
 
 import com.ibm.wala.util.collections.HashMapFactory;
 import com.ibm.wala.util.debug.Assertions;
@@ -8,13 +8,13 @@ import com.ibm.wala.util.intset.OrdinalSetMapping;
 import java.util.*;
 import java.util.stream.Stream;
 
-public class MyOrdinalSetMapping<T> implements OrdinalSetMapping<T> {
+public class TaintVarOrdinalSetMapping<T> implements OrdinalSetMapping<T> {
 
     /** A mapping from object to Integer */
     private final HashMap<T, Integer> map = HashMapFactory.make();
     private final List<T> array = new ArrayList<>();
 
-    public MyOrdinalSetMapping() {
+    public TaintVarOrdinalSetMapping() {
     }
 
     @Override

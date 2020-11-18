@@ -1,4 +1,4 @@
-package top.anemone.wala.taintanalysis;
+package top.anemone.wala.taintanalysis.transferfunction;
 
 import com.ibm.wala.classLoader.IMethod;
 import com.ibm.wala.dataflow.graph.BitVectorIdentity;
@@ -12,12 +12,16 @@ import com.ibm.wala.ssa.SSAInstruction;
 import com.ibm.wala.ssa.analysis.IExplodedBasicBlock;
 import com.ibm.wala.util.intset.BitVectorIntSet;
 import com.ibm.wala.util.intset.OrdinalSetMapping;
+import top.anemone.wala.taintanalysis.Utils;
+import top.anemone.wala.taintanalysis.domain.IndexedTaintVar;
+import top.anemone.wala.taintanalysis.domain.TaintVar;
+import top.anemone.wala.taintanalysis.domain.Statement;
 
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
-public class MyEdgeTransfer extends UnaryOperator<BitVectorVariable> {
+public class EdgeTransfer extends UnaryOperator<BitVectorVariable> {
 
 
     private final BasicBlockInContext<IExplodedBasicBlock> src;
@@ -28,8 +32,8 @@ public class MyEdgeTransfer extends UnaryOperator<BitVectorVariable> {
     private final TaintVar fakeSink;
     private final ExplodedInterproceduralCFG icfg;
 
-    public MyEdgeTransfer(BasicBlockInContext<IExplodedBasicBlock> src, BasicBlockInContext<IExplodedBasicBlock> dst, OrdinalSetMapping<TaintVar> vars,
-                          CallGraph callGraph, ExplodedInterproceduralCFG icfg, TaintVar source, TaintVar sink) {
+    public EdgeTransfer(BasicBlockInContext<IExplodedBasicBlock> src, BasicBlockInContext<IExplodedBasicBlock> dst, OrdinalSetMapping<TaintVar> vars,
+                        CallGraph callGraph, ExplodedInterproceduralCFG icfg, TaintVar source, TaintVar sink) {
         this.src = src;
         this.dst = dst;
         this.taintVars = vars;
@@ -130,13 +134,13 @@ public class MyEdgeTransfer extends UnaryOperator<BitVectorVariable> {
         }
     }
 
-    private TaintVar findPut(TaintVar taintParam, TaintVar var, Set<TypedTaintVar> book) {
+    private TaintVar findPut(TaintVar taintParam, TaintVar var, Set<Statement> book) {
         TaintVar foundPutVar = null;
         for (TaintVar nextTaint : var.propagateTaintVars) {
             if (nextTaint.inst != null && nextTaint.type == TaintVar.Type.PUT && nextTaint.inst.getUse(1) == taintParam.varNo && nextTaint.context.equals(taintParam.context)) {
                 return nextTaint;
             }
-            TypedTaintVar searchSite = new TypedTaintVar(nextTaint);
+            Statement searchSite = new Statement(nextTaint);
             if (!book.contains(searchSite)) {
                 book.add(searchSite);
                 foundPutVar = findPut(taintParam, nextTaint, book);

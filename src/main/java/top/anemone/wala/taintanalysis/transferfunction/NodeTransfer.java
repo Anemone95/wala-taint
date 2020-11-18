@@ -1,4 +1,4 @@
-package top.anemone.wala.taintanalysis;
+package top.anemone.wala.taintanalysis.transferfunction;
 
 import com.ibm.wala.classLoader.CallSiteReference;
 import com.ibm.wala.classLoader.IMethod;
@@ -16,12 +16,16 @@ import com.ibm.wala.ssa.analysis.IExplodedBasicBlock;
 import com.ibm.wala.types.FieldReference;
 import com.ibm.wala.util.intset.BitVectorIntSet;
 import com.ibm.wala.util.intset.OrdinalSetMapping;
+import top.anemone.wala.taintanalysis.PrintUtil;
+import top.anemone.wala.taintanalysis.Utils;
+import top.anemone.wala.taintanalysis.domain.IndexedTaintVar;
+import top.anemone.wala.taintanalysis.domain.TaintVar;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-public class MyNodeTransfer extends UnaryOperator<BitVectorVariable> {
+public class NodeTransfer extends UnaryOperator<BitVectorVariable> {
 
     private final BasicBlockInContext<IExplodedBasicBlock> node;
     private final OrdinalSetMapping<TaintVar> taintVars;
@@ -33,7 +37,7 @@ public class MyNodeTransfer extends UnaryOperator<BitVectorVariable> {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        MyNodeTransfer that = (MyNodeTransfer) o;
+        NodeTransfer that = (NodeTransfer) o;
         return node.equals(that.node) &&
                 callGraph.equals(that.callGraph) &&
                 fakeSource.equals(that.fakeSource) &&
@@ -45,8 +49,8 @@ public class MyNodeTransfer extends UnaryOperator<BitVectorVariable> {
         return Objects.hash(node, callGraph, fakeSource, fakeSink);
     }
 
-    public MyNodeTransfer(BasicBlockInContext<IExplodedBasicBlock> node, OrdinalSetMapping<TaintVar> vars,
-                          CallGraph callGraph, TaintVar source, TaintVar sink) {
+    public NodeTransfer(BasicBlockInContext<IExplodedBasicBlock> node, OrdinalSetMapping<TaintVar> vars,
+                        CallGraph callGraph, TaintVar source, TaintVar sink) {
         this.node = node;
         this.taintVars = vars;
         this.callGraph = callGraph;

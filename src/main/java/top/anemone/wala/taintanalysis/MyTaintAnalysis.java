@@ -20,6 +20,9 @@ import com.ibm.wala.util.CancelException;
 import com.ibm.wala.util.WalaException;
 import com.ibm.wala.util.intset.OrdinalSetMapping;
 import com.ibm.wala.viz.DotUtil;
+import top.anemone.wala.taintanalysis.domain.TaintVar;
+import top.anemone.wala.taintanalysis.domain.TaintVarOrdinalSetMapping;
+import top.anemone.wala.taintanalysis.transferfunction.TaintTransferFunctions;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -52,11 +55,11 @@ public class MyTaintAnalysis {
         DotUtil.dotify(callGraph, null, PDFTypeHierarchy.DOT_FILE, "callgraph.pdf", "dot");
 
         ExplodedInterproceduralCFG icfg = ExplodedInterproceduralCFG.make(callGraph);
-        OrdinalSetMapping<TaintVar> taintVarOrdinalSet = new MyOrdinalSetMapping<>();
+        OrdinalSetMapping<TaintVar> taintVarOrdinalSet = new TaintVarOrdinalSetMapping<>();
         TaintVar source = new TaintVar(123456789, null, null, null);
         TaintVar sink = new TaintVar(987654321, null, null, null);
         BitVectorFramework<BasicBlockInContext<IExplodedBasicBlock>, TaintVar> framework = new BitVectorFramework<>(
-                icfg, new MyTransferFunctions(taintVarOrdinalSet, callGraph, icfg, source, sink), taintVarOrdinalSet);
+                icfg, new TaintTransferFunctions(taintVarOrdinalSet, callGraph, icfg, source, sink), taintVarOrdinalSet);
         BitVectorSolver<BasicBlockInContext<IExplodedBasicBlock>> solver = new BitVectorSolver<>(framework);
         solver.solve(null);
     }

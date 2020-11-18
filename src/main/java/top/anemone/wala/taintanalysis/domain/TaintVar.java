@@ -1,4 +1,4 @@
-package top.anemone.wala.taintanalysis;
+package top.anemone.wala.taintanalysis.domain;
 
 import com.ibm.wala.classLoader.IMethod;
 import com.ibm.wala.ipa.callgraph.Context;
@@ -15,13 +15,13 @@ public class TaintVar {
         DEF, PUT, TEMP, CALL_SITE, METHOD_ENTRY
     }
 
-    final Context context;
-    final List<TaintVar> propagateTaintVars;
-    final IMethod method;
-    final SSAInstruction inst;
-    int varNo;
-    Map<FieldReference, TaintVar> fields;
-    Type type;
+    public final Context context;
+    public final List<TaintVar> propagateTaintVars;
+    public final IMethod method;
+    public final SSAInstruction inst;
+    public int varNo;
+    public Map<FieldReference, TaintVar> fields;
+    public Type type;
 
     @Override
     public boolean equals(Object o) {
@@ -65,6 +65,7 @@ public class TaintVar {
         this.type = type;
     }
 
+    @Deprecated
     public void addNextTaintVar(TaintVar t) {
         propagateTaintVars.add(t);
     }

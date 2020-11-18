@@ -18,5 +18,5 @@ a=A()
 a.b=req_param
 c=A()
 c.b=a
-# result=getxxx(c,"B","C","D","E") # 不支持注解@staticmethod， get()能扫到
-os.system(c.b.b) # subprocess.call(os.system(result))不行，没有os.system的函数摘要
+result=getxxx(c,"B","C","D","E") # 不支持注解@staticmethod， get()能扫到
+# os.system(c.b.b) # subprocess.call(os.system(result))不行，没有os.system的函数摘要

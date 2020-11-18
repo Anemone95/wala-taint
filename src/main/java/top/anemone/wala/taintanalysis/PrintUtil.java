@@ -1,15 +1,18 @@
 package top.anemone.wala.taintanalysis;
 
 
+import top.anemone.wala.taintanalysis.domain.TaintVar;
+import top.anemone.wala.taintanalysis.domain.Statement;
+
 import java.util.LinkedList;
 import java.util.List;
 
 public class PrintUtil {
-    List<TypedTaintVar> path = new LinkedList<>();
+    List<Statement> path = new LinkedList<>();
 
     public boolean printPath(TaintVar from, TaintVar to) {
         if (from.equals(to)){
-            for (TypedTaintVar v:path) {
+            for (Statement v:path) {
                 if (v.taintVar.inst!=null){
                     System.out.println(v.taintVar.getPosition());
                 } else if (v.method!=null){
@@ -20,7 +23,7 @@ public class PrintUtil {
         }
         boolean found=false;
         for (TaintVar nextVar: from.propagateTaintVars){
-            TypedTaintVar nextTypedVar=new TypedTaintVar(nextVar);
+            Statement nextTypedVar=new Statement(nextVar);
             if (!path.contains(nextTypedVar)){
                 path.add(nextTypedVar);
                 found|= printPath(nextVar, to);
