@@ -68,7 +68,7 @@ public class TaintVar {
         this.inst = defInst;
         this.fields = new HashMap<>();
         this.type = Type.DEF;
-        this.prevStatements=new HashSet<>();
+        this.prevStatements = new HashSet<>();
     }
 
     public TaintVar(int varNo, Context context, IMethod method, SSAInstruction defInst, Type type) {
@@ -79,12 +79,22 @@ public class TaintVar {
         this.inst = defInst;
         this.fields = new HashMap<>();
         this.type = type;
-        this.prevStatements=new HashSet<>();
+        this.prevStatements = new HashSet<>();
     }
 
     @Deprecated
     public void addNextTaintVar(TaintVar t) {
         propagateTaintVars.add(t);
+    }
+
+    @Override
+    public String toString() {
+        return "TaintVar{" +
+                "context=" + context +
+                ", varNo=" + varNo +
+                ", type=" + type +
+                ", position" + getPosition() +
+                '}';
     }
 
     public IMethod.SourcePosition getPosition() {

@@ -125,7 +125,7 @@ public class NodeTransfer extends UnaryOperator<BitVectorVariable> {
                     TaintVar putVar=new TaintVar(inst.getUse(1), context, method, inst, TaintVar.Type.PUT);
                     // 2. put语句的先前依赖语句等同于field对象语句
                     putVar.fields=fieldObj.var.fields;
-                    putVar.addPrevStatements(new Statement(fieldObj.var));
+                    putVar.addPrevStatements(new Statement(rhsTaint));
                     obj.var.fields.put(fieldReference, putVar);
                 } else {
                     obj.var.fields.put(fieldReference, fieldObj.var);
