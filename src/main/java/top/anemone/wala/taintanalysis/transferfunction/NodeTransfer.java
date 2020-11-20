@@ -8,10 +8,7 @@ import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.ibm.wala.ipa.callgraph.Context;
 import com.ibm.wala.ipa.cfg.BasicBlockInContext;
-import com.ibm.wala.ssa.SSAAbstractInvokeInstruction;
-import com.ibm.wala.ssa.SSAGetInstruction;
-import com.ibm.wala.ssa.SSAInstruction;
-import com.ibm.wala.ssa.SSAPutInstruction;
+import com.ibm.wala.ssa.*;
 import com.ibm.wala.ssa.analysis.IExplodedBasicBlock;
 import com.ibm.wala.types.FieldReference;
 import com.ibm.wala.util.intset.BitVectorIntSet;
@@ -22,6 +19,7 @@ import top.anemone.wala.taintanalysis.domain.IndexedTaintVar;
 import top.anemone.wala.taintanalysis.domain.Statement;
 import top.anemone.wala.taintanalysis.domain.TaintVar;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -122,9 +120,9 @@ public class NodeTransfer extends UnaryOperator<BitVectorVariable> {
                 TaintVar rhsTaint = Utils.getTaint(fieldObj.var, this.taintVars, rhs);
                 if (rhsTaint != null) {
                     // 1. 构造一个put语句
-                    TaintVar putVar=new TaintVar(inst.getUse(1), context, method, inst, TaintVar.Type.PUT);
+                    TaintVar putVar = new TaintVar(inst.getUse(1), context, method, inst, TaintVar.Type.PUT);
                     // 2. put语句的先前依赖语句等同于field对象语句
-                    putVar.fields=fieldObj.var.fields;
+                    putVar.fields = fieldObj.var.fields;
                     putVar.addPrevStatements(new Statement(rhsTaint));
                     obj.var.fields.put(fieldReference, putVar);
                 } else {
@@ -140,11 +138,11 @@ public class NodeTransfer extends UnaryOperator<BitVectorVariable> {
                 IndexedTaintVar leftVar = getOrCreateTaintVar(instruction.getDef(), instruction, context, method);
                 TaintVar rightTaintVar = Utils.getTaint(obj.var, this.taintVars, rhs);
                 TaintVar fieldObj = obj.var.getField(field);
-                if (rightTaintVar==null){
-                    if (fieldObj!=null){
+                if (rightTaintVar == null) {
+                    if (fieldObj != null) {
                         leftVar.var.fields = fieldObj.fields; // 获取右侧对象所有域
                     }
-                } else if (rightTaintVar.equals(obj.var)){
+                } else if (rightTaintVar.equals(obj.var)) {
                     // 如果目标本身污染，那么其中所有域被污染
                     leftVar.var.addPrevStatements(new Statement(obj.var));
                     gen.add(leftVar.index);
@@ -156,6 +154,7 @@ public class NodeTransfer extends UnaryOperator<BitVectorVariable> {
 
                 isHandled = true;
             }
+
 
             if (!isHandled) {
                 for (int i = 0; i < instruction.getNumberOfUses(); i++) {
@@ -170,6 +169,27 @@ public class NodeTransfer extends UnaryOperator<BitVectorVariable> {
                     }
                 }
             }
+
+        }
+
+        Iterator<SSAPhiInstruction> phiInsts = node.iteratePhis();
+        while (phiInsts.hasNext()) {
+            SSAPhiInstruction phiInst = phiInsts.next();
+            IndexedTaintVar lhVar = getOrCreateTaintVar(phiInst.getDef(), instruction, context, method);
+            // union taint
+            for (int i = 0; i < phiInst.getNumberOfUses(); i++) {
+                IndexedTaintVar rhVarI = getOrCreateTaintVar(phiInst.getUse(i), instruction, context, method);
+                TaintVar taintVar = Utils.getTaint(rhVarI.var, this.taintVars, rhs);
+                if (taintVar!=null){
+                    // TODO: 考虑域敏感
+                    lhVar.var.addPrevStatements(new Statement(taintVar));
+                    gen.add(lhVar.index);
+                }
+            }
+            System.out.println(node);
+            System.out.println(phiInst);
+
+            // Propagation
         }
 
         // gen kill
