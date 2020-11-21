@@ -30,7 +30,7 @@ public class TaintTransferFunctions implements ITransferFunctionProvider<BasicBl
     @Override
     public UnaryOperator<BitVectorVariable> getNodeTransferFunction(BasicBlockInContext<IExplodedBasicBlock> node) {
 
-        return new NodeTransfer(node, this.taintVars, this.callGraph, this.source, this.sink);
+        return new NodeTransfer(node, this.taintVars, this.callGraph, this.icfg,this.source, this.sink);
     }
 
     @Override

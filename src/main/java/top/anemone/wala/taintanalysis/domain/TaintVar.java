@@ -12,7 +12,7 @@ import java.util.*;
 public class TaintVar {
 
     public enum Type {
-        DEF, PUT, TEMP, CALL_SITE, METHOD_ENTRY
+        DEF, PUT, GET_OBJ, TEMP, CALL_SITE, METHOD_ENTRY
     }
 
     public final Context context;
@@ -27,6 +27,9 @@ public class TaintVar {
         this.prevStatements.add(prevStatement);
     }
 
+    public void clearPrevStatements(){
+        this.prevStatements.clear();
+    }
     public void reloadPrevStatements(Set<Statement> prevStatements) {
         this.prevStatements.clear();
         this.prevStatements.addAll(prevStatements);

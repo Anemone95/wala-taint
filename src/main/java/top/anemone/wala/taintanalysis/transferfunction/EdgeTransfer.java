@@ -55,10 +55,10 @@ public class EdgeTransfer extends UnaryOperator<BitVectorVariable> {
         SSAInstruction srcInst = src.getDelegate().getInstruction();
         SSAInstruction dstInst = dst.getDelegate().getInstruction();
 
-//        System.out.println("-----BB start------");
-//        System.out.println("src: "+srcInst+" context: "+src.getNode().getContext());
-//        System.out.println("dst: "+dstInst+" context: "+dst.getNode().getContext());
-//        System.out.println("-----BB end------");
+        if (src.getNode().equals(dst.getNode())) {
+            // call to return
+            return BitVectorIdentity.instance().evaluate(lhs, rhs);
+        }
         if (dst.isEntryBlock()) {
             // call to entry, 传参数
             int numPara = srcInst.getNumberOfUses();
@@ -74,7 +74,9 @@ public class EdgeTransfer extends UnaryOperator<BitVectorVariable> {
             for (int i = 0; i < numMethodPara; i++) {
                 int paraSrcVar = srcInst.getUse(offset + i);
                 int paraDstVar = dst.getNode().getIR().getSymbolTable().getParameter(i);
+                // 实参
                 IndexedTaintVar paraSrc = getOrCreateTaintVar(paraSrcVar, srcInst, src.getNode().getContext(), src.getMethod());
+                // 形参
                 IndexedTaintVar paraDst = getOrCreateTaintVar(paraDstVar, dstInst, dst.getNode().getContext(), dst.getMethod());
                 // 传递域
                 paraDst.var.fields = paraSrc.var.fields;
@@ -82,39 +84,36 @@ public class EdgeTransfer extends UnaryOperator<BitVectorVariable> {
                 if (taintParam != null) {
                     TaintVar callSite = new TaintVar(paraSrcVar, src.getNode().getContext(), src.getMethod(), srcInst, TaintVar.Type.CALL_SITE);
                     TaintVar callee = new TaintVar(paraSrcVar, dst.getNode().getContext(), dst.getMethod(), dstInst, TaintVar.Type.METHOD_ENTRY);
-                    if (taintParam.varNo == paraSrc.var.varNo) {
-                        // 不涉及域的污点传播
-                        paraSrc.var.addNextTaintVar(callSite);
-                    } else {
-                        TaintVar putStat = findPut(taintParam, paraSrc.var, new HashSet<>()); // 找到put语句
-                        if (putStat==null){
-                            System.err.println("Put Stat not found");
-                            paraSrc.var.addNextTaintVar(callSite);
-                        } else {
-                            putStat.addNextTaintVar(callSite);
-                        }
+                    if (taintParam.equals(paraSrc.var)) {
+                        gen.add(paraDst.index);
                     }
-                    // FIXME: 找到与[67]相关的, putfield, PUT语句将其插入到后面，(67, putfield, DEF) 实际上是当67.64，67不存在是构造的
-                    callSite.addNextTaintVar(callee);
-                    callee.addNextTaintVar(paraDst.var);
-                    gen.add(paraDst.index);
+                    callSite.addPrevStatements(new Statement(taintParam));
+                    callee.addPrevStatements(new Statement(callSite));
+                    paraDst.var.clearPrevStatements();
+                    paraDst.var.addPrevStatements(new Statement(callee));
                 }
             }
 
         } else if (src.isExitBlock() && !dst.isExitBlock()) {
+            System.out.println("----ret block start----");
+            System.out.println(srcInst);
+            System.out.println(dstInst);
+            System.out.println("----ret block end, pred nodes start----");
             // exit to return
             Iterator<BasicBlockInContext<IExplodedBasicBlock>> predNodes = icfg.getPredNodes(dst);
 
             while (predNodes.hasNext()) {
                 BasicBlockInContext<IExplodedBasicBlock> predNode = predNodes.next();
-//                        if (!icfg.getCallTargets(predNode).contains(src.getNode())) {
-//                            continue;
-//                        }
                 if (!icfg.hasEdge(predNode, icfg.getEntry(src.getNode()))) {
                     continue;
                 }
                 SSAInstruction invokeInst = predNode.getDelegate().getInstruction();
+                IndexedTaintVar retVar = getOrCreateTaintVar(invokeInst.getDef(),
+                        invokeInst, predNode.getNode().getContext(), predNode.getMethod());
+                kill.add(retVar.index);
+                System.out.println(invokeInst);
             }
+            System.out.println("----pred nodes end----");
         }
 
         // gen kill
@@ -132,25 +131,6 @@ public class EdgeTransfer extends UnaryOperator<BitVectorVariable> {
         } else {
             return NOT_CHANGED;
         }
-    }
-
-    private TaintVar findPut(TaintVar taintParam, TaintVar var, Set<Statement> book) {
-        TaintVar foundPutVar = null;
-        for (TaintVar nextTaint : var.propagateTaintVars) {
-            if (nextTaint.inst != null && nextTaint.type == TaintVar.Type.PUT && nextTaint.inst.getUse(1) == taintParam.varNo && nextTaint.context.equals(taintParam.context)) {
-                return nextTaint;
-            }
-            Statement searchSite = new Statement(nextTaint);
-            if (!book.contains(searchSite)) {
-                book.add(searchSite);
-                foundPutVar = findPut(taintParam, nextTaint, book);
-                book.remove(searchSite);
-                if (foundPutVar != null) {
-                    return foundPutVar;
-                }
-            }
-        }
-        return foundPutVar;
     }
 
     @Override

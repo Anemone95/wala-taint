@@ -8,6 +8,7 @@ import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.ibm.wala.ipa.callgraph.Context;
 import com.ibm.wala.ipa.cfg.BasicBlockInContext;
+import com.ibm.wala.ipa.cfg.ExplodedInterproceduralCFG;
 import com.ibm.wala.ssa.*;
 import com.ibm.wala.ssa.analysis.IExplodedBasicBlock;
 import com.ibm.wala.types.FieldReference;
@@ -22,6 +23,7 @@ import top.anemone.wala.taintanalysis.domain.TaintVar;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class NodeTransfer extends UnaryOperator<BitVectorVariable> {
@@ -31,6 +33,18 @@ public class NodeTransfer extends UnaryOperator<BitVectorVariable> {
     private final CallGraph callGraph;
     private final TaintVar fakeSource;
     private final TaintVar fakeSink;
+    private final ExplodedInterproceduralCFG icfg;
+
+    public NodeTransfer(BasicBlockInContext<IExplodedBasicBlock> node,
+                        OrdinalSetMapping<TaintVar> taintVars, CallGraph callGraph, ExplodedInterproceduralCFG icfg,
+                        TaintVar source, TaintVar sink) {
+        this.node = node;
+        this.taintVars = taintVars;
+        this.callGraph = callGraph;
+        this.icfg = icfg;
+        this.fakeSource = source;
+        this.fakeSink = sink;
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -48,14 +62,6 @@ public class NodeTransfer extends UnaryOperator<BitVectorVariable> {
         return Objects.hash(node, callGraph, fakeSource, fakeSink);
     }
 
-    public NodeTransfer(BasicBlockInContext<IExplodedBasicBlock> node, OrdinalSetMapping<TaintVar> vars,
-                        CallGraph callGraph, TaintVar source, TaintVar sink) {
-        this.node = node;
-        this.taintVars = vars;
-        this.callGraph = callGraph;
-        this.fakeSource = source;
-        this.fakeSink = sink;
-    }
 
     @Override
     public byte evaluate(BitVectorVariable lhs, BitVectorVariable rhs) {
@@ -92,29 +98,37 @@ public class NodeTransfer extends UnaryOperator<BitVectorVariable> {
                 int sinkParam = 1;
                 if (instruction.getNumberOfUses() - 1 >= sinkParam) {
                     CallSiteReference cs = ((SSAAbstractInvokeInstruction) instruction).getCallSite();
-                    for (CGNode callee : this.callGraph.getPossibleTargets(cgNode, cs)) {
+                    Set<CGNode> callees=this.callGraph.getPossibleTargets(cgNode, cs);
+                    // 非黑盒函数污点在函数内处理，黑盒函数默认传播污点,
+                    if (callees.size()!=0){
+                        isHandled = true;
+                    } else {
+                        // 清除上一轮污点
+                        TaintVar lhVar = new TaintVar(instruction.getDef(), context, method, instruction, TaintVar.Type.DEF);
+                        kill.add(this.taintVars.add(lhVar));
+                    }
+                    for (CGNode callee : callees) {
                         // sink pattern(os/function/system)
                         IndexedTaintVar taintVar = getOrCreateTaintVar(instruction.getUse(sinkParam), instruction, context, method);
                         if (callee.getMethod().getReference().toString().contains(sinkFunc) && taintVar.index != -1 && rhs.get(taintVar.index)) {
                             TaintVar def = taintVar.var;
                             TaintVar use = new TaintVar(-instruction.getUse(sinkParam), context, method, instruction);
-//                            def.addNextTaintVar(use);
-//                            use.addNextTaintVar(fakeSink);
                             use.addPrevStatements(new Statement(def));
                             fakeSink.addPrevStatements(new Statement(use));
                             System.out.println("Vulnerable:");
                             new PrintUtil().printPath(new Statement(fakeSource), new Statement(fakeSink));
-
                         }
                     }
                 }
             }
 
             if (instruction instanceof SSAPutInstruction) {
+                // 域敏感时无法兼顾流敏感（要做代价等同于流敏感指针分析），因此当field本身是污点时，不清除
                 SSAPutInstruction inst = (SSAPutInstruction) instruction;
                 FieldReference fieldReference = inst.getDeclaredField();
                 IndexedTaintVar obj = getOrCreateTaintVar(inst.getUse(0), instruction, context, method);
                 IndexedTaintVar fieldObj = getOrCreateTaintVar(inst.getUse(1), instruction, context, method);
+                TaintVar oldFieldVar = obj.var.getField(inst.getDeclaredField());
                 // put fieldObj into obj
                 // 如果存在污染传递，标记，但是不能直接依赖fieidobj定义的taintvar，得重新定义新的put
                 TaintVar rhsTaint = Utils.getTaint(fieldObj.var, this.taintVars, rhs);
@@ -125,6 +139,10 @@ public class NodeTransfer extends UnaryOperator<BitVectorVariable> {
                     putVar.fields = fieldObj.var.fields;
                     putVar.addPrevStatements(new Statement(rhsTaint));
                     obj.var.fields.put(fieldReference, putVar);
+                } else if (oldFieldVar != null && Utils.getTaint(oldFieldVar, this.taintVars, rhs) != null) {
+                    // 域敏感时流不敏感
+                    System.err.println(obj.var + "'s field: " + inst.getDeclaredField().getName() +
+                            " had taint in some where. Field is not flow sensitive so not clean, may cause FP");
                 } else {
                     obj.var.fields.put(fieldReference, fieldObj.var);
                 }
@@ -135,7 +153,10 @@ public class NodeTransfer extends UnaryOperator<BitVectorVariable> {
                 SSAGetInstruction inst = (SSAGetInstruction) instruction;
                 FieldReference field = inst.getDeclaredField();
                 IndexedTaintVar obj = getOrCreateTaintVar(inst.getUse(0), instruction, context, method);
+
+                // TODO 考虑是否要kill
                 IndexedTaintVar leftVar = getOrCreateTaintVar(instruction.getDef(), instruction, context, method);
+                kill.add(leftVar.index);
                 TaintVar rightTaintVar = Utils.getTaint(obj.var, this.taintVars, rhs);
                 TaintVar fieldObj = obj.var.getField(field);
                 if (rightTaintVar == null) {
@@ -147,8 +168,20 @@ public class NodeTransfer extends UnaryOperator<BitVectorVariable> {
                     leftVar.var.addPrevStatements(new Statement(obj.var));
                     gen.add(leftVar.index);
                 } else {
-                    // 如果目标未污染，那么其域是否被污染
-                    leftVar.var.addPrevStatements(new Statement(fieldObj));
+                    // 如果目标未污染，那么其域被污染
+                    boolean objInParam = false;
+                    for (int i = 0; i < method.getNumberOfParameters(); i++) {
+                        if (cgNode.getIR().getSymbolTable().getParameter(i) == obj.var.varNo) {
+                            objInParam = true;
+                            break;
+                        }
+                    }
+                    if (objInParam) {
+                        // 目标是函数参数传下来的
+                        leftVar.var.addPrevStatements(new Statement(obj.var));
+                    } else {
+                        leftVar.var.addPrevStatements(new Statement(fieldObj));
+                    }
                     gen.add(leftVar.index);
                 }
 
@@ -180,16 +213,16 @@ public class NodeTransfer extends UnaryOperator<BitVectorVariable> {
             for (int i = 0; i < phiInst.getNumberOfUses(); i++) {
                 IndexedTaintVar rhVarI = getOrCreateTaintVar(phiInst.getUse(i), instruction, context, method);
                 TaintVar taintVar = Utils.getTaint(rhVarI.var, this.taintVars, rhs);
-                if (taintVar!=null){
-                    // TODO: 考虑域敏感
-                    lhVar.var.addPrevStatements(new Statement(taintVar));
-                    gen.add(lhVar.index);
+                if (taintVar != null) {
+                    if (taintVar.equals(rhVarI.var)) {
+                        lhVar.var.addPrevStatements(new Statement(taintVar));
+                        gen.add(lhVar.index);
+                    } else {
+                        lhVar.var.fields = rhVarI.var.fields;
+                    }
                 }
             }
-            System.out.println(node);
-            System.out.println(phiInst);
 
-            // Propagation
         }
 
         // gen kill

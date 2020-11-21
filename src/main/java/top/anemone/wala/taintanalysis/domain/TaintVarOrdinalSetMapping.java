@@ -56,8 +56,14 @@ public class TaintVarOrdinalSetMapping<T> implements OrdinalSetMapping<T> {
         } catch (ClassCastException e){
             throw new UnimplementedError(e.toString());
         }
-        array.add(t);
-        map.put(t, array.size()-1);
+        int idx=getMappedIndex(t);
+        if (idx>0){
+            array.set(idx,t);
+            map.put(t, idx);
+        } else {
+            array.add(t);
+            map.put(t, array.size()-1);
+        }
         return array.size()-1;
     }
 
