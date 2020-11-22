@@ -36,7 +36,7 @@ public class TaintAnalysisDemo {
         Class<?> i3 = Class.forName("com.ibm.wala.cast.python3.util.Python3Interpreter");
         PythonInterpreter.setInterpreter((PythonInterpreter) i3.newInstance());
 
-        String filename = "intra.py";
+        String filename = "demo.py";
         Collection<Module> src = Collections.singleton(new SourceURLModule(
                 TaintAnalysisDemo.class.getClassLoader().getResource(filename)));
         PythonAnalysisEngine<Void> analysisEngine = new PythonAnalysisEngine<Void>() {
@@ -60,7 +60,7 @@ public class TaintAnalysisDemo {
         TaintVar source = new TaintVar(123456789, null, null, null);
         TaintVar sink = new TaintVar(987654321, null, null, null);
         BitVectorFramework<BasicBlockInContext<IExplodedBasicBlock>, TaintVar> framework = new BitVectorFramework<>(
-                icfg, new TaintTransferFunctions(taintVarOrdinalSet, callGraph, icfg, source, sink, new PrintTraverser()), taintVarOrdinalSet);
+                icfg, new TaintTransferFunctions(taintVarOrdinalSet, callGraph, icfg, source, sink, analysisEngine.getPointerAnalysis(),new PrintTraverser()), taintVarOrdinalSet);
         BitVectorSolver<BasicBlockInContext<IExplodedBasicBlock>> solver = new BitVectorSolver<>(framework);
         solver.solve(null);
     }

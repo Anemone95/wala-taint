@@ -7,6 +7,8 @@ import com.ibm.wala.fixpoint.UnaryOperator;
 import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.ibm.wala.ipa.callgraph.Context;
+import com.ibm.wala.ipa.callgraph.propagation.InstanceKey;
+import com.ibm.wala.ipa.callgraph.propagation.PointerAnalysis;
 import com.ibm.wala.ipa.cfg.BasicBlockInContext;
 import com.ibm.wala.ipa.cfg.ExplodedInterproceduralCFG;
 import com.ibm.wala.ssa.*;
@@ -32,19 +34,20 @@ public class NodeTransfer extends UnaryOperator<BitVectorVariable> {
     private final CallGraph callGraph;
     private final TaintVar fakeSource;
     private final TaintVar fakeSink;
-    private final ExplodedInterproceduralCFG icfg;
     private final TaintGraphTraverser resultProcessor;
+    private final PointerAnalysis<? super InstanceKey> pointerAnalysis;
 
     public NodeTransfer(BasicBlockInContext<IExplodedBasicBlock> node,
-                        OrdinalSetMapping<TaintVar> taintVars, CallGraph callGraph, ExplodedInterproceduralCFG icfg,
+                        OrdinalSetMapping<TaintVar> taintVars, CallGraph callGraph,
+                        PointerAnalysis<? super InstanceKey> pointerAnalysis,
                         TaintVar source, TaintVar sink, TaintGraphTraverser resultProcessor) {
         this.node = node;
         this.taintVars = taintVars;
         this.callGraph = callGraph;
-        this.icfg = icfg;
         this.fakeSource = source;
         this.fakeSink = sink;
         this.resultProcessor = resultProcessor;
+        this.pointerAnalysis=pointerAnalysis;
     }
 
     @Override

@@ -94,4 +94,42 @@ public class MyTaintAnalysisTest extends TestCase {
          */
         assertEquals(9, pathTraverser.getPaths().get(0).size()-1 );
     }
+
+    @Test
+    public void testInter3() throws CancelException, IOException, IllegalAccessException, InstantiationException, ClassNotFoundException {
+        String filename = "inter3.py";
+        Collection<Module> src = Collections.singleton(new SourceURLModule(
+                TaintAnalysisDemo.class.getClassLoader().getResource(filename)));
+        PathTraverser pathTraverser=new PathTraverser();
+        new TaintAnalysis().analysis(src,pathTraverser);
+
+        assertEquals(pathTraverser.getPaths().size(), 1);
+        /*
+        inter3.py [9:4] -> [9:16]
+        <Code body of function Lscript inter3.py/thread>
+        <Code body of function Lscript inter3.py/thread>
+        inter3.py [18:0] -> [18:36]
+        inter3.py [16:12] -> [16:38]
+         */
+        assertEquals(5, pathTraverser.getPaths().get(0).size()-1 );
+    }
+
+    @Test
+    public void testInter4() throws CancelException, IOException, IllegalAccessException, InstantiationException, ClassNotFoundException {
+        String filename = "inter4.py";
+        Collection<Module> src = Collections.singleton(new SourceURLModule(
+                TaintAnalysisDemo.class.getClassLoader().getResource(filename)));
+        PathTraverser pathTraverser=new PathTraverser();
+        new TaintAnalysis().analysis(src,pathTraverser);
+
+        assertEquals(pathTraverser.getPaths().size(), 1);
+        /*
+        inter3.py [9:4] -> [9:16]
+        <Code body of function Lscript inter3.py/thread>
+        <Code body of function Lscript inter3.py/thread>
+        inter3.py [18:0] -> [18:36]
+        inter3.py [16:12] -> [16:38]
+         */
+        assertEquals(5, pathTraverser.getPaths().get(0).size()-1 );
+    }
 }

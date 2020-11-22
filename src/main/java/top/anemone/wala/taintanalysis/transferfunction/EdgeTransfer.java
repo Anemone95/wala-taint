@@ -80,11 +80,9 @@ public class EdgeTransfer extends UnaryOperator<BitVectorVariable> {
                 if (taintParam != null) {
                     TaintVar callSite = new TaintVar(paraSrcVar, src.getNode().getContext(), src.getMethod(), srcInst, TaintVar.Type.CALL_SITE);
                     TaintVar callee = new TaintVar(paraDstVar, dst.getNode().getContext(), dst.getMethod(), dstInst, TaintVar.Type.METHOD_ENTRY);
-                    if (taintParam.equals(paraSrc.var)) {
-                        gen.add(paraDst.index);
-                    }
                     if (taintParam.fromField == null) {
                         callSite.addPrevStatement(new Statement(taintParam.taintVar));
+                        gen.add(paraDst.index);
                     } else {
                         callSite.addPrevStatement(taintParam.fromField);
                     }
