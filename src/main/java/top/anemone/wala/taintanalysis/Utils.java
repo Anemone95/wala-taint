@@ -18,7 +18,7 @@ public class Utils {
         if (hasTaint){
             // 如果taintVar不是map中的定义var，将其取出使 taintVar.prev=mapVar
             if (!new Statement(taintVar).equals(new Statement(taintVars.getMappedObject(idx)))){
-                taintVar.addPrevStatements(new Statement(taintVars.getMappedObject(idx)));
+                taintVar.addPrevStatement(new Statement(taintVars.getMappedObject(idx)));
             }
             return taintVar;
         }

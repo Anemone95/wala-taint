@@ -8,7 +8,9 @@ import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.ibm.wala.ipa.callgraph.Context;
 import com.ibm.wala.ipa.cfg.BasicBlockInContext;
 import com.ibm.wala.ipa.cfg.ExplodedInterproceduralCFG;
+import com.ibm.wala.shrikeCT.InvalidClassFileException;
 import com.ibm.wala.ssa.SSAInstruction;
+import com.ibm.wala.ssa.SSAReturnInstruction;
 import com.ibm.wala.ssa.analysis.IExplodedBasicBlock;
 import com.ibm.wala.util.intset.BitVectorIntSet;
 import com.ibm.wala.util.intset.OrdinalSetMapping;
@@ -17,9 +19,7 @@ import top.anemone.wala.taintanalysis.domain.IndexedTaintVar;
 import top.anemone.wala.taintanalysis.domain.TaintVar;
 import top.anemone.wala.taintanalysis.domain.Statement;
 
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
+import java.util.*;
 
 public class EdgeTransfer extends UnaryOperator<BitVectorVariable> {
 
@@ -55,10 +55,6 @@ public class EdgeTransfer extends UnaryOperator<BitVectorVariable> {
         SSAInstruction srcInst = src.getDelegate().getInstruction();
         SSAInstruction dstInst = dst.getDelegate().getInstruction();
 
-        if (src.getNode().equals(dst.getNode())) {
-            // call to return
-            return BitVectorIdentity.instance().evaluate(lhs, rhs);
-        }
         if (dst.isEntryBlock()) {
             // call to entry, 传参数
             int numPara = srcInst.getNumberOfUses();
@@ -83,37 +79,61 @@ public class EdgeTransfer extends UnaryOperator<BitVectorVariable> {
                 TaintVar taintParam = Utils.getTaint(paraSrc.var, this.taintVars, rhs);
                 if (taintParam != null) {
                     TaintVar callSite = new TaintVar(paraSrcVar, src.getNode().getContext(), src.getMethod(), srcInst, TaintVar.Type.CALL_SITE);
-                    TaintVar callee = new TaintVar(paraSrcVar, dst.getNode().getContext(), dst.getMethod(), dstInst, TaintVar.Type.METHOD_ENTRY);
+                    TaintVar callee = new TaintVar(paraDstVar, dst.getNode().getContext(), dst.getMethod(), dstInst, TaintVar.Type.METHOD_ENTRY);
                     if (taintParam.equals(paraSrc.var)) {
                         gen.add(paraDst.index);
                     }
-                    callSite.addPrevStatements(new Statement(taintParam));
-                    callee.addPrevStatements(new Statement(callSite));
+                    callSite.addPrevStatement(new Statement(taintParam));
+                    callee.addPrevStatement(new Statement(callSite));
                     paraDst.var.clearPrevStatements();
-                    paraDst.var.addPrevStatements(new Statement(callee));
+                    try {
+                        dst.getNode().getMethod().getParameterSourcePosition(i);
+                    } catch (InvalidClassFileException e) {
+                        e.printStackTrace();
+                    }
+                    paraDst.var.addPrevStatement(new Statement(callee));
                 }
             }
 
         } else if (src.isExitBlock() && !dst.isExitBlock()) {
-            System.out.println("----ret block start----");
-            System.out.println(srcInst);
-            System.out.println(dstInst);
-            System.out.println("----ret block end, pred nodes start----");
             // exit to return
             Iterator<BasicBlockInContext<IExplodedBasicBlock>> predNodes = icfg.getPredNodes(dst);
 
+            List<TaintVar> possibleTaintRets = new LinkedList<>();
+            if (predNodes.hasNext()) {
+                Arrays.stream(src.getNode().getIR().getInstructions()).filter(e -> e instanceof SSAReturnInstruction)
+                        .forEach(inst -> {
+                                    for (int i = 0; i < inst.getNumberOfUses(); i++) {
+                                        IndexedTaintVar indexedRetVar = getOrCreateTaintVar(inst.getUse(i), inst,
+                                                src.getNode().getContext(), src.getMethod());
+                                        TaintVar foundTaint = Utils.getTaint(indexedRetVar.var, taintVars, rhs);
+                                        if (foundTaint != null) {
+                                            if (!foundTaint.equals(indexedRetVar.var)) {
+                                                indexedRetVar.var.type = TaintVar.Type.RET;
+                                                // FIXME: retVar原先就有prevStatement, 要向前找两个，再把found贴上
+//                                                indexedRetVar.var.addPrevStatement(new Statement(foundTaint));
+                                            }
+                                            possibleTaintRets.add(indexedRetVar.var);
+                                        }
+                                    }
+                                }
+                        );
+            }
             while (predNodes.hasNext()) {
                 BasicBlockInContext<IExplodedBasicBlock> predNode = predNodes.next();
                 if (!icfg.hasEdge(predNode, icfg.getEntry(src.getNode()))) {
                     continue;
                 }
+
                 SSAInstruction invokeInst = predNode.getDelegate().getInstruction();
-                IndexedTaintVar retVar = getOrCreateTaintVar(invokeInst.getDef(),
+                IndexedTaintVar outerVar = getOrCreateTaintVar(invokeInst.getDef(),
                         invokeInst, predNode.getNode().getContext(), predNode.getMethod());
-                kill.add(retVar.index);
-                System.out.println(invokeInst);
+                for (TaintVar retTaintVar: possibleTaintRets) {
+                    outerVar.var.addPrevStatement(new Statement(retTaintVar));
+                    gen.add(outerVar.index);
+                }
+                kill.add(outerVar.index);
             }
-            System.out.println("----pred nodes end----");
         }
 
         // gen kill

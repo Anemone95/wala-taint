@@ -12,18 +12,17 @@ import java.util.*;
 public class TaintVar {
 
     public enum Type {
-        DEF, PUT, GET_OBJ, TEMP, CALL_SITE, METHOD_ENTRY
+        DEF, PUT, GET_OBJ, TEMP, CALL_SITE, METHOD_ENTRY, RET
     }
 
     public final Context context;
-    public final List<TaintVar> propagateTaintVars;
     private final Set<Statement> prevStatements;
 
     public Set<Statement> getPrevStatements() {
         return prevStatements;
     }
 
-    public void addPrevStatements(Statement prevStatement) {
+    public void addPrevStatement(Statement prevStatement) {
         this.prevStatements.add(prevStatement);
     }
 
@@ -47,7 +46,7 @@ public class TaintVar {
         if (o == null || getClass() != o.getClass()) return false;
         TaintVar taintVar = (TaintVar) o;
         return varNo == taintVar.varNo &&
-                Objects.equals(context, taintVar.context);
+                Objects.equals(context, taintVar.context) && Objects.equals(method, taintVar.method) ;
     }
 
     public TaintVar getField(FieldReference f) {
@@ -60,13 +59,12 @@ public class TaintVar {
 
     @Override
     public int hashCode() {
-        return Objects.hash(context, varNo);
+        return Objects.hash(context, varNo, method);
     }
 
     public TaintVar(int varNo, Context context, IMethod method, SSAInstruction defInst) {
         this.varNo = varNo;
         this.context = context;
-        this.propagateTaintVars = new LinkedList<>();
         this.method = method;
         this.inst = defInst;
         this.fields = new HashMap<>();
@@ -77,7 +75,6 @@ public class TaintVar {
     public TaintVar(int varNo, Context context, IMethod method, SSAInstruction defInst, Type type) {
         this.varNo = varNo;
         this.context = context;
-        this.propagateTaintVars = new LinkedList<>();
         this.method = method;
         this.inst = defInst;
         this.fields = new HashMap<>();
@@ -85,10 +82,6 @@ public class TaintVar {
         this.prevStatements = new HashSet<>();
     }
 
-    @Deprecated
-    public void addNextTaintVar(TaintVar t) {
-        propagateTaintVars.add(t);
-    }
 
     @Override
     public String toString() {

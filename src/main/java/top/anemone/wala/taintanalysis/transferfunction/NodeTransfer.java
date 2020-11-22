@@ -21,10 +21,8 @@ import top.anemone.wala.taintanalysis.domain.Statement;
 import top.anemone.wala.taintanalysis.domain.TaintVar;
 
 import java.util.Iterator;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class NodeTransfer extends UnaryOperator<BitVectorVariable> {
 
@@ -87,7 +85,7 @@ public class NodeTransfer extends UnaryOperator<BitVectorVariable> {
                 if (instruction.toString().contains("suggest")) {
                     IndexedTaintVar taintVar = getOrCreateTaintVar(instruction.getDef(), instruction, context, method);
 //                    fakeSource.addNextTaintVar(this.taintVars.getMappedObject(taintVar.index));
-                    taintVar.var.addPrevStatements(new Statement(fakeSource));
+                    taintVar.var.addPrevStatement(new Statement(fakeSource));
                     gen.add(taintVar.index);
                     isHandled = true;
                 }
@@ -113,8 +111,8 @@ public class NodeTransfer extends UnaryOperator<BitVectorVariable> {
                         if (callee.getMethod().getReference().toString().contains(sinkFunc) && taintVar.index != -1 && rhs.get(taintVar.index)) {
                             TaintVar def = taintVar.var;
                             TaintVar use = new TaintVar(-instruction.getUse(sinkParam), context, method, instruction);
-                            use.addPrevStatements(new Statement(def));
-                            fakeSink.addPrevStatements(new Statement(use));
+                            use.addPrevStatement(new Statement(def));
+                            fakeSink.addPrevStatement(new Statement(use));
                             System.out.println("Vulnerable:");
                             new PrintUtil().printPath(new Statement(fakeSource), new Statement(fakeSink));
                         }
@@ -137,10 +135,10 @@ public class NodeTransfer extends UnaryOperator<BitVectorVariable> {
                     TaintVar putVar = new TaintVar(inst.getUse(1), context, method, inst, TaintVar.Type.PUT);
                     // 2. put语句的先前依赖语句等同于field对象语句
                     putVar.fields = fieldObj.var.fields;
-                    putVar.addPrevStatements(new Statement(rhsTaint));
+                    putVar.addPrevStatement(new Statement(rhsTaint));
                     obj.var.fields.put(fieldReference, putVar);
                 } else if (oldFieldVar != null && Utils.getTaint(oldFieldVar, this.taintVars, rhs) != null) {
-                    // 域敏感时流不敏感
+                    // 老field有污点，不重新赋值（流不敏感）
                     System.err.println(obj.var + "'s field: " + inst.getDeclaredField().getName() +
                             " had taint in some where. Field is not flow sensitive so not clean, may cause FP");
                 } else {
@@ -165,7 +163,8 @@ public class NodeTransfer extends UnaryOperator<BitVectorVariable> {
                     }
                 } else if (rightTaintVar.equals(obj.var)) {
                     // 如果目标本身污染，那么其中所有域被污染
-                    leftVar.var.addPrevStatements(new Statement(obj.var));
+//                    leftVar.var.clearPrevStatements();
+                    leftVar.var.addPrevStatement(new Statement(obj.var));
                     gen.add(leftVar.index);
                 } else {
                     // 如果目标未污染，那么其域被污染
@@ -176,11 +175,12 @@ public class NodeTransfer extends UnaryOperator<BitVectorVariable> {
                             break;
                         }
                     }
+                    leftVar.var.clearPrevStatements();
                     if (objInParam) {
                         // 目标是函数参数传下来的
-                        leftVar.var.addPrevStatements(new Statement(obj.var));
+                        leftVar.var.addPrevStatement(new Statement(obj.var));
                     } else {
-                        leftVar.var.addPrevStatements(new Statement(fieldObj));
+                        leftVar.var.addPrevStatement(new Statement(fieldObj));
                     }
                     gen.add(leftVar.index);
                 }
@@ -197,7 +197,7 @@ public class NodeTransfer extends UnaryOperator<BitVectorVariable> {
                     if (prevTaintVar != null) {
                         // 存在污点
                         IndexedTaintVar nextTaintVar = getOrCreateTaintVar(instruction.getDef(), instruction, context, method);
-                        nextTaintVar.var.addPrevStatements(new Statement(prevTaintVar));
+                        nextTaintVar.var.addPrevStatement(new Statement(prevTaintVar));
                         gen.add(nextTaintVar.index);
                     }
                 }
@@ -215,7 +215,7 @@ public class NodeTransfer extends UnaryOperator<BitVectorVariable> {
                 TaintVar taintVar = Utils.getTaint(rhVarI.var, this.taintVars, rhs);
                 if (taintVar != null) {
                     if (taintVar.equals(rhVarI.var)) {
-                        lhVar.var.addPrevStatements(new Statement(taintVar));
+                        lhVar.var.addPrevStatement(new Statement(taintVar));
                         gen.add(lhVar.index);
                     } else {
                         lhVar.var.fields = rhVarI.var.fields;
