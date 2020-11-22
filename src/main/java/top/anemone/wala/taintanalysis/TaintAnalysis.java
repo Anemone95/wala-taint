@@ -46,7 +46,7 @@ public class TaintAnalysis {
         TaintVar source = new TaintVar(123456789, null, null, null);
         TaintVar sink = new TaintVar(987654321, null, null, null);
         BitVectorFramework<BasicBlockInContext<IExplodedBasicBlock>, TaintVar> framework = new BitVectorFramework<>(
-                icfg, new TaintTransferFunctions(taintVarOrdinalSet, callGraph, icfg, source, sink, analysisEngine.getPointerAnalysis(), resultProcessor), taintVarOrdinalSet);
+                icfg, new TaintTransferFunctions(taintVarOrdinalSet, callGraph, icfg, source, sink, builder.getPointerAnalysis(), resultProcessor), taintVarOrdinalSet);
         BitVectorSolver<BasicBlockInContext<IExplodedBasicBlock>> solver = new BitVectorSolver<>(framework);
         solver.solve(null);
     }

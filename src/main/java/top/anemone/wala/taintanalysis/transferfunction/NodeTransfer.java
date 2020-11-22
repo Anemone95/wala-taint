@@ -7,7 +7,9 @@ import com.ibm.wala.fixpoint.UnaryOperator;
 import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.ibm.wala.ipa.callgraph.Context;
+import com.ibm.wala.ipa.callgraph.propagation.AllocationSiteInNode;
 import com.ibm.wala.ipa.callgraph.propagation.InstanceKey;
+import com.ibm.wala.ipa.callgraph.propagation.LocalPointerKey;
 import com.ibm.wala.ipa.callgraph.propagation.PointerAnalysis;
 import com.ibm.wala.ipa.cfg.BasicBlockInContext;
 import com.ibm.wala.ipa.cfg.ExplodedInterproceduralCFG;
@@ -15,6 +17,7 @@ import com.ibm.wala.ssa.*;
 import com.ibm.wala.ssa.analysis.IExplodedBasicBlock;
 import com.ibm.wala.types.FieldReference;
 import com.ibm.wala.util.intset.BitVectorIntSet;
+import com.ibm.wala.util.intset.OrdinalSet;
 import com.ibm.wala.util.intset.OrdinalSetMapping;
 import top.anemone.wala.taintanalysis.result.PrintTraverser;
 import top.anemone.wala.taintanalysis.Utils;
@@ -88,7 +91,31 @@ public class NodeTransfer extends UnaryOperator<BitVectorVariable> {
             boolean isHandled = false;
             if (instruction instanceof SSAGetInstruction) {
                 // source
-                if (instruction.toString().contains("suggest")) {
+
+//                MethodReference flask =
+//                        MethodReference.findOrCreate(
+//                                TypeReference.findOrCreate(PythonTypes.pythonLoader, "Lflask"),
+//                                new Selector(
+//                                        Atom.findOrCreateUnicodeAtom("import"),
+//                                        Descriptor.findOrCreateUTF8("()Lflask;")));
+
+                LocalPointerKey objKey = new LocalPointerKey(cgNode, instruction.getDef()); // FIXME: getUse=-1
+                OrdinalSet<? super InstanceKey> objs = pointerAnalysis.getPointsToSet(objKey);
+                for (Object x : objs) {
+                    System.out.println(x);
+                    if (x instanceof AllocationSiteInNode) {
+                        AllocationSiteInNode xx = (AllocationSiteInNode) x;
+                        System.out.println(x);
+                        System.out.println(((AllocationSiteInNode) x).getSite());
+//                        if (xx.getNode().getMethod().getReference().equals(flask) &&
+//                                xx.getSite().getProgramCounter() == 5) {
+//                            return true;
+//                        }
+                    }
+                }
+
+
+                if (instruction.toString().contains("suggestion")) {
                     IndexedTaintVar taintVar = getOrCreateTaintVar(instruction.getDef(), instruction, context, method);
 //                    fakeSource.addNextTaintVar(this.taintVars.getMappedObject(taintVar.index));
                     taintVar.var.addPrevStatement(new Statement(fakeSource));

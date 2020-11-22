@@ -50,7 +50,6 @@ public class TaintAnalysisDemo {
         SSAPropagationCallGraphBuilder builder = (SSAPropagationCallGraphBuilder) analysisEngine.defaultCallGraphBuilder();
         CallGraph callGraph = builder.makeCallGraph(builder.getOptions());
 
-        analysisEngine.getPointerAnalysis();
         CAstCallGraphUtil.AVOID_DUMP = false;
         CAstCallGraphUtil.dumpCG((SSAContextInterpreter) builder.getContextInterpreter(), builder.getPointerAnalysis(), callGraph);
         DotUtil.dotify(callGraph, null, PDFTypeHierarchy.DOT_FILE, "callgraph.pdf", "dot");
@@ -60,7 +59,7 @@ public class TaintAnalysisDemo {
         TaintVar source = new TaintVar(123456789, null, null, null);
         TaintVar sink = new TaintVar(987654321, null, null, null);
         BitVectorFramework<BasicBlockInContext<IExplodedBasicBlock>, TaintVar> framework = new BitVectorFramework<>(
-                icfg, new TaintTransferFunctions(taintVarOrdinalSet, callGraph, icfg, source, sink, analysisEngine.getPointerAnalysis(),new PrintTraverser()), taintVarOrdinalSet);
+                icfg, new TaintTransferFunctions(taintVarOrdinalSet, callGraph, icfg, source, sink, builder.getPointerAnalysis(),new PrintTraverser()), taintVarOrdinalSet);
         BitVectorSolver<BasicBlockInContext<IExplodedBasicBlock>> solver = new BitVectorSolver<>(framework);
         solver.solve(null);
     }
