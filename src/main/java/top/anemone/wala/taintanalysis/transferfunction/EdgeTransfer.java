@@ -76,14 +76,18 @@ public class EdgeTransfer extends UnaryOperator<BitVectorVariable> {
                 IndexedTaintVar paraDst = getOrCreateTaintVar(paraDstVar, dstInst, dst.getNode().getContext(), dst.getMethod());
                 // 传递域
                 paraDst.var.fields = paraSrc.var.fields;
-                TaintVar taintParam = Utils.getTaint(paraSrc.var, this.taintVars, rhs);
+                Utils.GetTaintRet taintParam = Utils.getTaint(paraSrc.var, this.taintVars, rhs);
                 if (taintParam != null) {
                     TaintVar callSite = new TaintVar(paraSrcVar, src.getNode().getContext(), src.getMethod(), srcInst, TaintVar.Type.CALL_SITE);
                     TaintVar callee = new TaintVar(paraDstVar, dst.getNode().getContext(), dst.getMethod(), dstInst, TaintVar.Type.METHOD_ENTRY);
                     if (taintParam.equals(paraSrc.var)) {
                         gen.add(paraDst.index);
                     }
-                    callSite.addPrevStatement(new Statement(taintParam));
+                    if (taintParam.fromField == null) {
+                        callSite.addPrevStatement(new Statement(taintParam.taintVar));
+                    } else {
+                        callSite.addPrevStatement(taintParam.fromField);
+                    }
                     callee.addPrevStatement(new Statement(callSite));
                     paraDst.var.clearPrevStatements();
                     try {
@@ -99,21 +103,19 @@ public class EdgeTransfer extends UnaryOperator<BitVectorVariable> {
             // exit to return
             Iterator<BasicBlockInContext<IExplodedBasicBlock>> predNodes = icfg.getPredNodes(dst);
 
-            List<TaintVar> possibleTaintRets = new LinkedList<>();
+            List<Statement> possibleTaintRets = new LinkedList<>();
             if (predNodes.hasNext()) {
                 Arrays.stream(src.getNode().getIR().getInstructions()).filter(e -> e instanceof SSAReturnInstruction)
                         .forEach(inst -> {
                                     for (int i = 0; i < inst.getNumberOfUses(); i++) {
                                         IndexedTaintVar indexedRetVar = getOrCreateTaintVar(inst.getUse(i), inst,
                                                 src.getNode().getContext(), src.getMethod());
-                                        TaintVar foundTaint = Utils.getTaint(indexedRetVar.var, taintVars, rhs);
+                                        Utils.GetTaintRet foundTaint = Utils.getTaint(indexedRetVar.var, taintVars, rhs);
+                                        Statement retStmt = new Statement(new TaintVar(inst.getUse(i),
+                                                src.getNode().getContext(), src.getMethod(), inst, TaintVar.Type.RET));
                                         if (foundTaint != null) {
-                                            if (!foundTaint.equals(indexedRetVar.var)) {
-                                                indexedRetVar.var.type = TaintVar.Type.RET;
-                                                // FIXME: retVar原先就有prevStatement, 要向前找两个，再把found贴上
-//                                                indexedRetVar.var.addPrevStatement(new Statement(foundTaint));
-                                            }
-                                            possibleTaintRets.add(indexedRetVar.var);
+                                            retStmt.taintVar.addPrevStatement(new Statement(indexedRetVar.var));
+                                            possibleTaintRets.add(retStmt);
                                         }
                                     }
                                 }
@@ -126,10 +128,15 @@ public class EdgeTransfer extends UnaryOperator<BitVectorVariable> {
                 }
 
                 SSAInstruction invokeInst = predNode.getDelegate().getInstruction();
-                IndexedTaintVar outerVar = getOrCreateTaintVar(invokeInst.getDef(),
-                        invokeInst, predNode.getNode().getContext(), predNode.getMethod());
-                for (TaintVar retTaintVar: possibleTaintRets) {
-                    outerVar.var.addPrevStatement(new Statement(retTaintVar));
+                IndexedTaintVar outerVar;
+                try {
+                    outerVar = getOrCreateTaintVar(invokeInst.getDef(),
+                            invokeInst, predNode.getNode().getContext(), predNode.getMethod());
+                } catch (AssertionError e){
+                    continue;
+                }
+                for (Statement retTaintStmt : possibleTaintRets) {
+                    outerVar.var.addPrevStatement(retTaintStmt);
                     gen.add(outerVar.index);
                 }
                 kill.add(outerVar.index);

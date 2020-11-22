@@ -27,6 +27,7 @@ public class Statement {
         return Objects.hash(method, type, taintVar, ssaInstruction);
     }
 
+    // FIXME add prototype，不直接新建对象，防止对象爆炸
     public Statement(TaintVar taintVar){
         this.taintVar=taintVar;
         this.ssaInstruction=taintVar.inst;

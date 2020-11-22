@@ -22,22 +22,23 @@ import com.ibm.wala.util.intset.OrdinalSetMapping;
 import com.ibm.wala.viz.DotUtil;
 import top.anemone.wala.taintanalysis.domain.TaintVar;
 import top.anemone.wala.taintanalysis.domain.TaintVarOrdinalSetMapping;
+import top.anemone.wala.taintanalysis.result.PrintTraverser;
 import top.anemone.wala.taintanalysis.transferfunction.TaintTransferFunctions;
 
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 
-public class MyTaintAnalysis {
+public class TaintAnalysisDemo {
     public static void main(String[] args) throws ClassNotFoundException, IllegalAccessException, InstantiationException, CancelException, IOException, WalaException {
         Class<?> j3 = Class.forName("com.ibm.wala.cast.python3.loader.Python3LoaderFactory");
         PythonAnalysisEngine.setLoaderFactory((Class<? extends PythonLoaderFactory>) j3);
         Class<?> i3 = Class.forName("com.ibm.wala.cast.python3.util.Python3Interpreter");
         PythonInterpreter.setInterpreter((PythonInterpreter) i3.newInstance());
 
-        String filename = "demo.py";
+        String filename = "intra.py";
         Collection<Module> src = Collections.singleton(new SourceURLModule(
-                MyTaintAnalysis.class.getClassLoader().getResource(filename)));
+                TaintAnalysisDemo.class.getClassLoader().getResource(filename)));
         PythonAnalysisEngine<Void> analysisEngine = new PythonAnalysisEngine<Void>() {
             @Override
             public Void performAnalysis(PropagationCallGraphBuilder builder) throws CancelException {
@@ -59,7 +60,7 @@ public class MyTaintAnalysis {
         TaintVar source = new TaintVar(123456789, null, null, null);
         TaintVar sink = new TaintVar(987654321, null, null, null);
         BitVectorFramework<BasicBlockInContext<IExplodedBasicBlock>, TaintVar> framework = new BitVectorFramework<>(
-                icfg, new TaintTransferFunctions(taintVarOrdinalSet, callGraph, icfg, source, sink), taintVarOrdinalSet);
+                icfg, new TaintTransferFunctions(taintVarOrdinalSet, callGraph, icfg, source, sink, new PrintTraverser()), taintVarOrdinalSet);
         BitVectorSolver<BasicBlockInContext<IExplodedBasicBlock>> solver = new BitVectorSolver<>(framework);
         solver.solve(null);
     }

@@ -37,7 +37,7 @@ public class TaintVar {
     public final IMethod method;
     public final SSAInstruction inst;
     public int varNo;
-    public Map<FieldReference, TaintVar> fields;
+    public Map<FieldReference, Statement> fields;
     public Type type;
 
     @Override
@@ -49,11 +49,11 @@ public class TaintVar {
                 Objects.equals(context, taintVar.context) && Objects.equals(method, taintVar.method) ;
     }
 
-    public TaintVar getField(FieldReference f) {
+    public Statement getField(FieldReference f) {
         return fields.get(f);
     }
 
-    public TaintVar putField(FieldReference f, TaintVar t) {
+    public Statement putField(FieldReference f, Statement t) {
         return fields.put(f, t);
     }
 

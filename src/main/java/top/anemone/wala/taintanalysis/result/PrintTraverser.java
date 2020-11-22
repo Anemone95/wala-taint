@@ -1,17 +1,18 @@
-package top.anemone.wala.taintanalysis;
+package top.anemone.wala.taintanalysis.result;
 
 
-import top.anemone.wala.taintanalysis.domain.TaintVar;
 import top.anemone.wala.taintanalysis.domain.Statement;
 
 import java.util.LinkedList;
 import java.util.List;
 
-public class PrintUtil {
-    List<Statement> path = new LinkedList<>();
+public class PrintTraverser implements TaintGraphTraverser{
+    List<Statement> searchPath = new LinkedList<>();
     public boolean printPath(Statement from, Statement to) {
         if (from.equals(to)){
-            for (Statement v:path) {
+            List<Statement> foundPath = new LinkedList<>(searchPath);
+
+            for (Statement v: searchPath) {
                 if (v.taintVar.inst!=null){
                     System.out.println(v.taintVar.getPosition());
                 } else if (v.method!=null){
@@ -22,14 +23,18 @@ public class PrintUtil {
         }
         boolean found=false;
         for (Statement preVar: to.taintVar.getPrevStatements()){
-            if (!path.contains(preVar)){
-                path.add(preVar);
+            if (!searchPath.contains(preVar)){
+                searchPath.add(preVar);
                 found|= printPath(from, preVar);
-                path.remove(preVar);
+                searchPath.remove(preVar);
             }
         }
         return found;
 
     }
 
+    @Override
+    public void traverse(Statement from, Statement to) {
+        printPath(from, to);
+    }
 }

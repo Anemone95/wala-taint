@@ -9,6 +9,7 @@ import com.ibm.wala.ipa.cfg.ExplodedInterproceduralCFG;
 import com.ibm.wala.ssa.analysis.IExplodedBasicBlock;
 import com.ibm.wala.util.intset.OrdinalSetMapping;
 import top.anemone.wala.taintanalysis.domain.TaintVar;
+import top.anemone.wala.taintanalysis.result.TaintGraphTraverser;
 
 public class TaintTransferFunctions implements ITransferFunctionProvider<BasicBlockInContext<IExplodedBasicBlock>, BitVectorVariable> {
 
@@ -17,20 +18,22 @@ public class TaintTransferFunctions implements ITransferFunctionProvider<BasicBl
     private final TaintVar source;
     private final TaintVar sink;
     private final ExplodedInterproceduralCFG icfg;
+    private final TaintGraphTraverser resultProcessor;
 
 
-    public TaintTransferFunctions(OrdinalSetMapping<TaintVar> vars, CallGraph callGraph, ExplodedInterproceduralCFG icfg, TaintVar source, TaintVar sink) {
+    public TaintTransferFunctions(OrdinalSetMapping<TaintVar> vars, CallGraph callGraph, ExplodedInterproceduralCFG icfg, TaintVar source, TaintVar sink, TaintGraphTraverser resultProcessor) {
         this.taintVars = vars;
         this.callGraph = callGraph;
         this.icfg=icfg;
         this.source = source;
         this.sink = sink;
+        this.resultProcessor=resultProcessor;
     }
 
     @Override
     public UnaryOperator<BitVectorVariable> getNodeTransferFunction(BasicBlockInContext<IExplodedBasicBlock> node) {
 
-        return new NodeTransfer(node, this.taintVars, this.callGraph, this.icfg,this.source, this.sink);
+        return new NodeTransfer(node, this.taintVars, this.callGraph, this.icfg,this.source, this.sink, this.resultProcessor);
     }
 
     @Override

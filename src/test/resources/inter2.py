@@ -6,9 +6,8 @@ import os
 #     def get(self, *args):
 #         return args[6]
 def getxxx(a,b,c,d,e):
-    os.system(a.b) # subprocess.call(os.system(result))不行，没有os.system的函数摘要
-    # return b # return b+1,c
-
+    f=a.b
+    os.system(f.b) # subprocess.call(os.system(result))不行，没有os.system的函数摘要
 class A:
     def __init__(self):
         self.b=None

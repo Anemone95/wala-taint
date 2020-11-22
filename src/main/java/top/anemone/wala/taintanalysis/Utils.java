@@ -6,13 +6,25 @@ import top.anemone.wala.taintanalysis.domain.Statement;
 import top.anemone.wala.taintanalysis.domain.TaintVar;
 
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 
 public class Utils {
-    public static TaintVar getTaint(TaintVar taintVar, OrdinalSetMapping<TaintVar> taintVars, BitVectorVariable rhs) {
-        return getTaint(taintVar, taintVars, rhs, new HashSet<>(), 0);
+    static public class GetTaintRet{
+        public TaintVar taintVar;
+        public Statement fromField;
+
+        public GetTaintRet(TaintVar taintVar, Statement fromField) {
+            this.taintVar = taintVar;
+            this.fromField = fromField;
+        }
     }
-    public static TaintVar getTaint(TaintVar taintVar, OrdinalSetMapping<TaintVar> taintVars, BitVectorVariable rhs, Set<TaintVar> book, int depth) {
+    // FIXME 这里应该同时获取get的路径
+    public static GetTaintRet getTaint(TaintVar taintVar, OrdinalSetMapping<TaintVar> taintVars, BitVectorVariable rhs) {
+        return getTaint(taintVar, null, taintVars, rhs, new LinkedList<>(), 0);
+    }
+    public static GetTaintRet getTaint(TaintVar taintVar, Statement prevStatement, OrdinalSetMapping<TaintVar> taintVars, BitVectorVariable rhs, List<Statement> book, int depth) {
         int idx = taintVars.getMappedIndex(taintVar);
         boolean hasTaint = idx != -1 && rhs.get(idx);
         if (hasTaint){
@@ -20,14 +32,15 @@ public class Utils {
             if (!new Statement(taintVar).equals(new Statement(taintVars.getMappedObject(idx)))){
                 taintVar.addPrevStatement(new Statement(taintVars.getMappedObject(idx)));
             }
-            return taintVar;
+            return new GetTaintRet(taintVar, prevStatement);
         }
-        for (TaintVar field : taintVar.fields.values()) {
+        for (Statement field : taintVar.fields.values()) {
             if (!book.contains(field)){
                 book.add(field);
-                TaintVar taint = getTaint(field, taintVars, rhs, book, depth+1);
+                GetTaintRet taint = getTaint(field.taintVar, field, taintVars, rhs, book, depth+1);
                 book.remove(field);
                 if (taint!=null) {
+                    taint.fromField=field;
                     return taint;
                 }
             }
