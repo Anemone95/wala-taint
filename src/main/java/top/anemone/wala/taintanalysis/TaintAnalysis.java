@@ -5,7 +5,6 @@ import com.ibm.wala.cast.python.loader.PythonLoaderFactory;
 import com.ibm.wala.cast.python.module.PyScriptModule;
 import com.ibm.wala.cast.python.util.PythonInterpreter;
 import com.ibm.wala.classLoader.Module;
-import com.ibm.wala.classLoader.SourceURLModule;
 import com.ibm.wala.dataflow.graph.BitVectorFramework;
 import com.ibm.wala.dataflow.graph.BitVectorSolver;
 import com.ibm.wala.ipa.callgraph.CallGraph;
@@ -22,7 +21,6 @@ import top.anemone.wala.taintanalysis.result.PrintTraverser;
 import top.anemone.wala.taintanalysis.result.TaintGraphTraverser;
 import top.anemone.wala.taintanalysis.transferfunction.TaintTransferFunctions;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
@@ -33,7 +31,7 @@ public class TaintAnalysis {
         PythonAnalysisEngine.setLoaderFactory((Class<? extends PythonLoaderFactory>) j3);
         Class<?> i3 = Class.forName("com.ibm.wala.cast.python3.util.Python3Interpreter");
         PythonInterpreter.setInterpreter((PythonInterpreter) i3.newInstance());
-        PythonAnalysisEngine<Void> analysisEngine = new PythonAnalysisEngine<Void>() {
+        PythonAnalysisEngine<Void> analysisEngine = new PythonAnalysisEngine<Void>(new String[]{"taint_primitives.xml"}) {
             @Override
             public Void performAnalysis(PropagationCallGraphBuilder builder) throws CancelException {
                 assert false;

@@ -125,7 +125,7 @@ public class NodeTransfer extends UnaryOperator<BitVectorVariable> {
             }
             if (instruction instanceof SSAAbstractInvokeInstruction) {
                 // sink
-                String sinkFunc = "os/function/system";
+                String sinkFunc = "walataint/function/sink";
                 int sinkParam = 1;
                 if (instruction.getNumberOfUses() - 1 >= sinkParam) {
                     CallSiteReference cs = ((SSAAbstractInvokeInstruction) instruction).getCallSite();
