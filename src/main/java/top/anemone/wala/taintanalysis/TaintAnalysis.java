@@ -2,6 +2,7 @@ package top.anemone.wala.taintanalysis;
 
 import com.ibm.wala.cast.python.client.PythonAnalysisEngine;
 import com.ibm.wala.cast.python.loader.PythonLoaderFactory;
+import com.ibm.wala.cast.python.module.PyScriptModule;
 import com.ibm.wala.cast.python.util.PythonInterpreter;
 import com.ibm.wala.classLoader.Module;
 import com.ibm.wala.classLoader.SourceURLModule;
@@ -54,7 +55,7 @@ public class TaintAnalysis {
 
     public static void main(String[] args) throws ClassNotFoundException, CancelException, InstantiationException, IllegalAccessException, IOException {
         String filename = "demo.py";
-        Collection<Module> src = Collections.singleton(new SourceURLModule(
+        Collection<Module> src = Collections.singleton(new PyScriptModule(
                 TaintAnalysis.class.getClassLoader().getResource(filename)));
         new TaintAnalysis().analysis(src, new PrintTraverser());
     }
