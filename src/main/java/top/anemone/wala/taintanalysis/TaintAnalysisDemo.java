@@ -3,6 +3,7 @@ package top.anemone.wala.taintanalysis;
 import com.ibm.wala.cast.ipa.callgraph.CAstCallGraphUtil;
 import com.ibm.wala.cast.python.client.PythonAnalysisEngine;
 import com.ibm.wala.cast.python.loader.PythonLoaderFactory;
+import com.ibm.wala.cast.python.module.PyScriptModule;
 import com.ibm.wala.cast.python.util.PythonInterpreter;
 import com.ibm.wala.classLoader.Module;
 import com.ibm.wala.classLoader.SourceURLModule;
@@ -37,7 +38,7 @@ public class TaintAnalysisDemo {
         PythonInterpreter.setInterpreter((PythonInterpreter) i3.newInstance());
 
         String filename = "demo.py";
-        Collection<Module> src = Collections.singleton(new SourceURLModule(
+        Collection<Module> src = Collections.singleton(new PyScriptModule(
                 TaintAnalysisDemo.class.getClassLoader().getResource(filename)));
         PythonAnalysisEngine<Void> analysisEngine = new PythonAnalysisEngine<Void>() {
             @Override
