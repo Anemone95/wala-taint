@@ -21,6 +21,7 @@ import top.anemone.wala.taintanalysis.result.PrintTraverser;
 import top.anemone.wala.taintanalysis.result.TaintGraphTraverser;
 import top.anemone.wala.taintanalysis.transferfunction.TaintTransferFunctions;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;

@@ -1,0 +1,55 @@
+<?xml version="1.0" ?>
+<!DOCTYPE summary-spec>
+<!-- Pandas model -->
+<summary-spec>
+    <classloader name="PythonLoader">
+        <!-- 这里定义函数原型-->
+        <class name="walataint" allocatable="true">
+            <method name="import"
+                    static="true"
+                    descriptor="()Lwalataint;">
+                <new def="Cwalataint" class="Lwalataint"/>
+                <new def="source" class="Lwalataint/function/source"/>
+                <new def="sink" class="Lwalataint/function/sink"/>
+                <new def="sanitizer" class="Lwalataint/function/sanitizer"/>
+
+                <putfield class="LRoot"
+                          field="source"
+                          fieldType="LRoot"
+                          ref="Cwalataint"
+                          value="source"/>
+                <putfield class="LRoot"
+                          field="sink"
+                          fieldType="LRoot"
+                          ref="Cwalataint"
+                          value="sink"/>
+                <putfield class="LRoot"
+                          field="sanitizer"
+                          fieldType="LRoot"
+                          ref="Cwalataint"
+                          value="sanitizer"/>
+
+                <return value="Cwalataint"/>
+            </method>
+        </class>
+
+        <package name="walataint/function">
+            <class name="source" allocatable="true">
+                <method name="do" descriptor="()LRoot;" numArgs="2" paramNames="self value">
+                    <return value="value"/>
+                </method>
+            </class>
+            <class name="sink" allocatable="true">
+                <method name="do" descriptor="()LRoot;" numArgs="2" paramNames="self value">
+                    <return value="value"/>
+                </method>
+            </class>
+            <class name="sanitizer" allocatable="true">
+                <method name="do" descriptor="()LRoot;" numArgs="2" paramNames="self value">
+                    <return value="self"/>
+                </method>
+            </class>
+        </package>
+
+    </classloader>
+</summary-spec>
