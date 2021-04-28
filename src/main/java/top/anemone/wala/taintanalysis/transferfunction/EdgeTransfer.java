@@ -59,8 +59,10 @@ public class EdgeTransfer extends UnaryOperator<BitVectorVariable> {
             // call to entry, 传参数
             int numPara = srcInst.getNumberOfUses();
             int numMethodPara = dst.getNode().getIR().getNumberOfParameters();
-            if (numPara != numMethodPara && numPara != numMethodPara + 1) {
-                System.err.println("parameter number mismatch!");
+            if (numPara != numMethodPara // 正常调用，形参实参数量想等
+                    && numPara != numMethodPara + 1 // python func调用，形参实参差1
+                    && numPara +1 !=numMethodPara) { // python init调用，实参形参差1
+                System.err.println("[WARNING] Parameter number mismatch!");
                 return BitVectorIdentity.instance().evaluate(lhs, rhs);
             }
             int offset = 0;

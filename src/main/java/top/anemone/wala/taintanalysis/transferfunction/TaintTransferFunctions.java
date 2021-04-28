@@ -10,9 +10,13 @@ import com.ibm.wala.ipa.cfg.BasicBlockInContext;
 import com.ibm.wala.ipa.cfg.ExplodedInterproceduralCFG;
 import com.ibm.wala.ssa.analysis.IExplodedBasicBlock;
 import com.ibm.wala.util.intset.OrdinalSetMapping;
+import top.anemone.wala.taintanalysis.Configuration;
 import top.anemone.wala.taintanalysis.domain.TaintVar;
 import top.anemone.wala.taintanalysis.result.TaintGraphTraverser;
 
+/**
+ * Provides NodeTransfer and EdgeTransfer
+ */
 public class TaintTransferFunctions implements ITransferFunctionProvider<BasicBlockInContext<IExplodedBasicBlock>, BitVectorVariable> {
 
     private final OrdinalSetMapping<TaintVar> taintVars;
@@ -22,24 +26,28 @@ public class TaintTransferFunctions implements ITransferFunctionProvider<BasicBl
     private final ExplodedInterproceduralCFG icfg;
     private final TaintGraphTraverser resultProcessor;
     private final PointerAnalysis<? super InstanceKey> pointerAnalysis;
+    private final Configuration configuration;
 
 
     public TaintTransferFunctions(OrdinalSetMapping<TaintVar> vars, CallGraph callGraph,
-                                  ExplodedInterproceduralCFG icfg, TaintVar source, TaintVar sink,
-                                  PointerAnalysis<? super InstanceKey> pointerAnalysis, TaintGraphTraverser resultProcessor) {
+                                  ExplodedInterproceduralCFG icfg,
+                                  PointerAnalysis<? super InstanceKey> pointerAnalysis,
+                                  Configuration configuration,
+                                  TaintGraphTraverser resultProcessor) {
         this.taintVars = vars;
         this.callGraph = callGraph;
         this.icfg=icfg;
-        this.source = source;
-        this.sink = sink;
+        this.source = new TaintVar(Integer.MIN_VALUE, null, null, null);
+        this.sink = new TaintVar(Integer.MAX_VALUE, null, null, null);
+        this.configuration = configuration;
         this.resultProcessor=resultProcessor;
         this.pointerAnalysis=pointerAnalysis;
     }
 
     @Override
     public UnaryOperator<BitVectorVariable> getNodeTransferFunction(BasicBlockInContext<IExplodedBasicBlock> node) {
-
-        return new NodeTransfer(node, this.taintVars, this.callGraph, this.pointerAnalysis,this.source, this.sink, this.resultProcessor);
+        return new NodeTransfer(node, this.taintVars, this.callGraph, this.pointerAnalysis,this.source, this.sink,
+                this.configuration,this.resultProcessor);
     }
 
     @Override

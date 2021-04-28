@@ -7,23 +7,17 @@ import com.ibm.wala.fixpoint.UnaryOperator;
 import com.ibm.wala.ipa.callgraph.CGNode;
 import com.ibm.wala.ipa.callgraph.CallGraph;
 import com.ibm.wala.ipa.callgraph.Context;
-import com.ibm.wala.ipa.callgraph.propagation.AllocationSiteInNode;
-import com.ibm.wala.ipa.callgraph.propagation.InstanceKey;
-import com.ibm.wala.ipa.callgraph.propagation.LocalPointerKey;
-import com.ibm.wala.ipa.callgraph.propagation.PointerAnalysis;
+import com.ibm.wala.ipa.callgraph.propagation.*;
 import com.ibm.wala.ipa.cfg.BasicBlockInContext;
-import com.ibm.wala.ipa.cfg.ExplodedInterproceduralCFG;
 import com.ibm.wala.ssa.*;
 import com.ibm.wala.ssa.analysis.IExplodedBasicBlock;
 import com.ibm.wala.types.FieldReference;
 import com.ibm.wala.util.intset.BitVectorIntSet;
 import com.ibm.wala.util.intset.OrdinalSet;
 import com.ibm.wala.util.intset.OrdinalSetMapping;
-import top.anemone.wala.taintanalysis.result.PrintTraverser;
+import top.anemone.wala.taintanalysis.Configuration;
 import top.anemone.wala.taintanalysis.Utils;
-import top.anemone.wala.taintanalysis.domain.IndexedTaintVar;
-import top.anemone.wala.taintanalysis.domain.Statement;
-import top.anemone.wala.taintanalysis.domain.TaintVar;
+import top.anemone.wala.taintanalysis.domain.*;
 import top.anemone.wala.taintanalysis.result.TaintGraphTraverser;
 
 import java.util.Iterator;
@@ -35,22 +29,25 @@ public class NodeTransfer extends UnaryOperator<BitVectorVariable> {
     private final BasicBlockInContext<IExplodedBasicBlock> node;
     private final OrdinalSetMapping<TaintVar> taintVars;
     private final CallGraph callGraph;
-    private final TaintVar fakeSource;
-    private final TaintVar fakeSink;
+    private final TaintVar worldSource;
+    private final TaintVar worldSink;
     private final TaintGraphTraverser resultProcessor;
     private final PointerAnalysis<? super InstanceKey> pointerAnalysis;
+    private final Configuration configuration;
 
     public NodeTransfer(BasicBlockInContext<IExplodedBasicBlock> node,
                         OrdinalSetMapping<TaintVar> taintVars, CallGraph callGraph,
                         PointerAnalysis<? super InstanceKey> pointerAnalysis,
-                        TaintVar source, TaintVar sink, TaintGraphTraverser resultProcessor) {
+                        TaintVar source, TaintVar sink, Configuration configuration,
+                        TaintGraphTraverser resultProcessor) {
         this.node = node;
         this.taintVars = taintVars;
         this.callGraph = callGraph;
-        this.fakeSource = source;
-        this.fakeSink = sink;
+        this.worldSource = source;
+        this.worldSink = sink;
+        this.configuration = configuration;
         this.resultProcessor = resultProcessor;
-        this.pointerAnalysis=pointerAnalysis;
+        this.pointerAnalysis = pointerAnalysis;
     }
 
     @Override
@@ -60,13 +57,13 @@ public class NodeTransfer extends UnaryOperator<BitVectorVariable> {
         NodeTransfer that = (NodeTransfer) o;
         return node.equals(that.node) &&
                 callGraph.equals(that.callGraph) &&
-                fakeSource.equals(that.fakeSource) &&
-                fakeSink.equals(that.fakeSink);
+                worldSource.equals(that.worldSource) &&
+                worldSink.equals(that.worldSink);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(node, callGraph, fakeSource, fakeSink);
+        return Objects.hash(node, callGraph, worldSource, worldSink);
     }
 
 
@@ -88,66 +85,64 @@ public class NodeTransfer extends UnaryOperator<BitVectorVariable> {
         BitVectorIntSet kill = new BitVectorIntSet();
 
         if (instruction != null) {
+            // if handled=true, we not propagate taint
             boolean isHandled = false;
             if (instruction instanceof SSAGetInstruction) {
                 // source
-
-//                MethodReference flask =
-//                        MethodReference.findOrCreate(
-//                                TypeReference.findOrCreate(PythonTypes.pythonLoader, "Lflask"),
-//                                new Selector(
-//                                        Atom.findOrCreateUnicodeAtom("import"),
-//                                        Descriptor.findOrCreateUTF8("()Lflask;")));
-
                 LocalPointerKey objKey = new LocalPointerKey(cgNode, instruction.getDef()); // FIXME: getUse=-1
                 OrdinalSet<? super InstanceKey> objs = pointerAnalysis.getPointsToSet(objKey);
                 for (Object x : objs) {
-                    System.out.println(x);
-                    if (x instanceof AllocationSiteInNode) {
-                        AllocationSiteInNode xx = (AllocationSiteInNode) x;
-                        System.out.println(x);
-                        System.out.println(((AllocationSiteInNode) x).getSite());
-//                        if (xx.getNode().getMethod().getReference().equals(flask) &&
-//                                xx.getSite().getProgramCounter() == 5) {
-//                            return true;
-//                        }
+                    if (x instanceof NormalAllocationInNode) {
+                        for (String source : configuration.getSources()) {
+                            if (((NormalAllocationInNode) x).getSite().getDeclaredType().getName().toString().equals(source)) {
+                                IndexedTaintVar taintVar = getOrCreateTaintVar(instruction.getDef(), instruction, context, method);
+                                taintVar.var.addPrevStatement(new Statement(worldSource));
+                                gen.add(taintVar.index);
+                                isHandled = true;
+                            }
+                        }
                     }
-                }
-
-
-                if (instruction.toString().contains("suggestion")) {
-                    IndexedTaintVar taintVar = getOrCreateTaintVar(instruction.getDef(), instruction, context, method);
-//                    fakeSource.addNextTaintVar(this.taintVars.getMappedObject(taintVar.index));
-                    taintVar.var.addPrevStatement(new Statement(fakeSource));
-                    gen.add(taintVar.index);
-                    isHandled = true;
                 }
             }
             if (instruction instanceof SSAAbstractInvokeInstruction) {
                 // sink
-                String sinkFunc = "walataint/function/sink";
-                int sinkParam = 1;
-                if (instruction.getNumberOfUses() - 1 >= sinkParam) {
-                    CallSiteReference cs = ((SSAAbstractInvokeInstruction) instruction).getCallSite();
-                    Set<CGNode> callees = this.callGraph.getPossibleTargets(cgNode, cs);
-                    // 非黑盒函数污点在函数内处理，黑盒函数默认传播污点,
-                    if (callees.size() != 0) {
-                        isHandled = true;
-                    } else {
-                        // 清除上一轮污点
-                        TaintVar lhVar = new TaintVar(instruction.getDef(), context, method, instruction, TaintVar.Type.DEF);
-                        kill.add(this.taintVars.add(lhVar));
+                CallSiteReference cs = ((SSAAbstractInvokeInstruction) instruction).getCallSite();
+                Set<CGNode> callees = this.callGraph.getPossibleTargets(cgNode, cs);
+                // 非黑盒函数污点在函数内处理，黑盒函数默认传播污点,
+                if (callees.size() != 0) {
+                    isHandled = true;
+                } else {
+                    // 清除上一轮污点
+                    TaintVar lhVar = new TaintVar(instruction.getDef(), context, method, instruction, TaintVar.Type.DEF);
+                    kill.add(this.taintVars.add(lhVar));
+                }
+                for (CGNode callee : callees) {
+                    // a=b.c() calleeStr=Lwala/function/b or file.py/O/b
+                    String calleeStr = callee.getMethod().getReference().getDeclaringClass().getName().toString();
+                    for (String sourceFunc : configuration.getSources()) {
+                        // 如果等于定义的source，产生一个新污点变量
+                        if (calleeStr.equals(sourceFunc) || calleeStr.endsWith("/" + sourceFunc)) {
+                            IndexedTaintVar taintVar = getOrCreateTaintVar(instruction.getDef(), instruction, context, method);
+                            taintVar.var.addPrevStatement(new Statement(worldSource));
+                            gen.add(taintVar.index);
+                            isHandled = true;
+                        }
                     }
-                    for (CGNode callee : callees) {
-                        // sink pattern(os/function/system)
+                    for (SinkMethod sink : configuration.getSinkMethods()) {
+                        int sinkParam = sink.paramIdx;
+                        if (instruction.getNumberOfUses() < sinkParam + 1 || sink.paramIdx < 0) {
+                            continue;
+                        }
                         IndexedTaintVar taintVar = getOrCreateTaintVar(instruction.getUse(sinkParam), instruction, context, method);
-                        if (callee.getMethod().getReference().toString().contains(sinkFunc) && taintVar.index != -1 && rhs.get(taintVar.index)) {
+                        if ((calleeStr.equals(sink.clazz) || calleeStr.endsWith("/" + sink.clazz)) && // classname
+                                callee.getMethod().getName().toString().equals(sink.method) &&
+                                taintVar.index != -1 && rhs.get(taintVar.index)) {
                             TaintVar def = taintVar.var;
                             TaintVar use = new TaintVar(-instruction.getUse(sinkParam), context, method, instruction);
                             use.addPrevStatement(new Statement(def));
-                            fakeSink.addPrevStatement(new Statement(use));
+                            worldSink.addPrevStatement(new Statement(use));
                             System.out.println("Vulnerable:");
-                            resultProcessor.traverse(new Statement(fakeSource), new Statement(fakeSink));
+                            resultProcessor.traverse(new Statement(worldSource), new Statement(worldSink));
                         }
                     }
                 }
@@ -160,9 +155,36 @@ public class NodeTransfer extends UnaryOperator<BitVectorVariable> {
                 IndexedTaintVar obj = getOrCreateTaintVar(inst.getUse(0), instruction, context, method);
                 IndexedTaintVar fieldObj = getOrCreateTaintVar(inst.getUse(1), instruction, context, method);
                 Statement oldFieldVar = obj.var.getField(inst.getDeclaredField());
+
+                LocalPointerKey objKey = new LocalPointerKey(cgNode, instruction.getUse(0)); // FIXME: getUse=-1
+                OrdinalSet<? super InstanceKey> objs = pointerAnalysis.getPointsToSet(objKey);
+
+                Utils.GetTaintRet rhsTaint = Utils.getTaint(fieldObj.var, this.taintVars, rhs);
+
+                for (Object x : objs) {
+                    if (x instanceof NormalAllocationInNode) {
+                        String classType = ((NormalAllocationInNode) x).getSite().getDeclaredType().getName().toString();
+                        String field = fieldReference.getName().toString();
+                        for (SinkField sinkField : configuration.getSinkFields()) {
+                            if ((sinkField.clazz.equals(classType) || classType.endsWith("/" + sinkField.clazz)) &&
+                                    sinkField.field.equals(field) &&
+                                    rhsTaint!=null
+                            ) {
+
+                                TaintVar def = rhsTaint.taintVar;
+                                TaintVar use = new TaintVar(-instruction.getUse(rhsTaint.taintVar.varNo), context, method, instruction);
+                                use.addPrevStatement(new Statement(def));
+                                worldSink.addPrevStatement(new Statement(use));
+                                System.out.println("Vulnerable:");
+                                resultProcessor.traverse(new Statement(worldSource), new Statement(worldSink));
+
+                            }
+                        }
+                    }
+                }
+
                 // put fieldObj into obj
                 // 如果存在污染传递，标记，但是不能直接依赖fieidobj定义的taintvar，得重新定义新的put
-                Utils.GetTaintRet rhsTaint = Utils.getTaint(fieldObj.var, this.taintVars, rhs);
                 if (rhsTaint != null) {
                     TaintVar putVar = new TaintVar(inst.getUse(1), context, method, inst, TaintVar.Type.PUT);
                     putVar.fields = fieldObj.var.fields;

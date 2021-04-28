@@ -3,43 +3,97 @@
 <!-- Pandas model -->
 <summary-spec>
     <classloader name="PythonLoader">
+        <!-- function tools-->
+        <class name="functools" allocatable="true">
+            <method name="import"
+                    static="true"
+                    descriptor="()Lfunctools;">
+                <new def="x" class="Lfunctools"/>
+
+                <new def="reduce" class="Lfunctools/functions/reduce"/>
+                <putfield class="LRoot"
+                          field="reduce"
+                          fieldType="LRoot"
+                          ref="x"
+                          value="reduce"/>
+
+                <return value="x"/>
+            </method>
+        </class>
+
+        <package name="functools/functions">
+
+            <class name="reduce" allocatable="true">
+                <method name="do" descriptor="()LRoot;" numArgs="3" paramNames="self lambda data">
+                    <constant name="l" type="int" value="0"/>
+                    <aaload ref="data" def="v1" type="LRoot" index="l"/>
+                    <constant name="r" type="int" value="1"/>
+                    <aaload ref="data" def="v2" type="LRoot" index="r"/>
+                    <call class="LRoot"
+                          name="do"
+                          descriptor="()LRoot;"
+                          type="virtual"
+                          arg0="lambda"
+                          arg1="v1"
+                          arg2="v2"
+                          numArgs="3"
+                          def="v"/>
+                    <return value="v"/>
+                </method>
+            </class>
+        </package>
+
+
         <!-- 这里定义函数原型-->
         <class name="walataint" allocatable="true">
             <method name="import"
                     static="true"
                     descriptor="()Lwalataint;">
                 <new def="Cwalataint" class="Lwalataint"/>
-                <new def="source" class="Lwalataint/function/source"/>
-                <new def="sink" class="Lwalataint/function/sink"/>
+                <new def="source_func" class="Lwalataint/function/source_func"/>
+                <new def="source_field" class="Lwalataint/field/source_field"/>
+                <new def="sink_func" class="Lwalataint/function/sink_func"/>
+                <new def="sink_field" class="Lwalataint/field/sink_field"/>
                 <new def="sanitizer" class="Lwalataint/function/sanitizer"/>
 
                 <putfield class="LRoot"
-                          field="source"
+                          field="source_func"
                           fieldType="LRoot"
                           ref="Cwalataint"
-                          value="source"/>
+                          value="source_func"/>
                 <putfield class="LRoot"
-                          field="sink"
+                          field="sink_func"
                           fieldType="LRoot"
                           ref="Cwalataint"
-                          value="sink"/>
+                          value="sink_func"/>
                 <putfield class="LRoot"
                           field="sanitizer"
                           fieldType="LRoot"
                           ref="Cwalataint"
                           value="sanitizer"/>
 
+                <putfield class="Lwalataint"
+                          field="source_field"
+                          fieldType="Lwalataint/field/source_field"
+                          ref="Cwalataint"
+                          value="source_field"/>
+                <putfield class="LRoot"
+                          field="sink_field"
+                          fieldType="Lwalataint/field/sink_field"
+                          ref="Cwalataint"
+                          value="sink_field"/>
+
                 <return value="Cwalataint"/>
             </method>
         </class>
 
         <package name="walataint/function">
-            <class name="source" allocatable="true">
+            <class name="source_func" allocatable="true">
                 <method name="do" descriptor="()LRoot;" numArgs="2" paramNames="self value">
                     <return value="value"/>
                 </method>
             </class>
-            <class name="sink" allocatable="true">
+            <class name="sink_func" allocatable="true">
                 <method name="do" descriptor="()LRoot;" numArgs="2" paramNames="self value">
                     <return value="value"/>
                 </method>
@@ -51,5 +105,11 @@
             </class>
         </package>
 
+        <package name="walataint/field">
+            <class name="source_field" allocatable="true">
+            </class>
+            <class name="sink_field" allocatable="true">
+            </class>
+        </package>
     </classloader>
 </summary-spec>

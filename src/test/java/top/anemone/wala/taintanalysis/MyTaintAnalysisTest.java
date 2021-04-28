@@ -5,8 +5,8 @@ import com.ibm.wala.cast.python.loader.PythonLoaderFactory;
 import com.ibm.wala.cast.python.module.PyScriptModule;
 import com.ibm.wala.cast.python.util.PythonInterpreter;
 import com.ibm.wala.classLoader.Module;
-import com.ibm.wala.classLoader.SourceURLModule;
 import com.ibm.wala.util.CancelException;
+import com.ibm.wala.util.WalaException;
 import junit.framework.TestCase;
 import org.junit.Before;
 import org.junit.Test;
@@ -28,7 +28,7 @@ public class MyTaintAnalysisTest extends TestCase {
     }
 
     @Test
-    public void testIntra() throws CancelException, IOException, ClassNotFoundException, IllegalAccessException, InstantiationException {
+    public void testIntra() throws CancelException, IOException, ClassNotFoundException, IllegalAccessException, InstantiationException, WalaException {
 
         String filename = "intra.py";
         Class<?> j3 = Class.forName("com.ibm.wala.cast.python3.loader.Python3LoaderFactory");
@@ -38,7 +38,9 @@ public class MyTaintAnalysisTest extends TestCase {
         Collection<Module> src = Collections.singleton(new PyScriptModule(
                 MyTaintAnalysisTest.class.getClassLoader().getResource(filename)));
         PathTraverser pathTraverser=new PathTraverser();
-        new TaintAnalysis().analysis(src,pathTraverser);
+        Configuration configuration = new Configuration();
+        configuration.loadPrimitiveConfigs();
+        new TaintAnalysis().analysis(src,configuration,pathTraverser);
         assertEquals(pathTraverser.getPaths().size(), 1);
         /*
         intra.py [8:0] -> [8:12]
@@ -50,12 +52,14 @@ public class MyTaintAnalysisTest extends TestCase {
     }
 
     @Test
-    public void testInter1() throws CancelException, IOException, IllegalAccessException, InstantiationException, ClassNotFoundException {
+    public void testInter1() throws CancelException, IOException, IllegalAccessException, InstantiationException, ClassNotFoundException, WalaException {
         String filename = "inter1.py";
         Collection<Module> src = Collections.singleton(new PyScriptModule(
-                TaintAnalysisDemo.class.getClassLoader().getResource(filename)));
+                TaintAnalysis.class.getClassLoader().getResource(filename)));
+        Configuration configuration = new Configuration();
+        configuration.loadPrimitiveConfigs();
         PathTraverser pathTraverser=new PathTraverser();
-        new TaintAnalysis().analysis(src,pathTraverser);
+        new TaintAnalysis().analysis(src,configuration,pathTraverser);
         assertEquals(pathTraverser.getPaths().size(), 1);
         /*
         inter1.py [22:10] -> [22:17]
@@ -73,12 +77,14 @@ public class MyTaintAnalysisTest extends TestCase {
     }
 
     @Test
-    public void testInter2() throws CancelException, IOException, IllegalAccessException, InstantiationException, ClassNotFoundException {
+    public void testInter2() throws CancelException, IOException, IllegalAccessException, InstantiationException, ClassNotFoundException, WalaException {
         String filename = "inter2.py";
         Collection<Module> src = Collections.singleton(new PyScriptModule(
-                TaintAnalysisDemo.class.getClassLoader().getResource(filename)));
+                TaintAnalysis.class.getClassLoader().getResource(filename)));
+        Configuration configuration = new Configuration();
+        configuration.loadPrimitiveConfigs();
         PathTraverser pathTraverser=new PathTraverser();
-        new TaintAnalysis().analysis(src,pathTraverser);
+        new TaintAnalysis().analysis(src,configuration,pathTraverser);
 
         assertEquals(pathTraverser.getPaths().size(), 1);
         /*
@@ -97,12 +103,15 @@ public class MyTaintAnalysisTest extends TestCase {
     }
 
     @Test
-    public void testInter3() throws CancelException, IOException, IllegalAccessException, InstantiationException, ClassNotFoundException {
+    public void testInter3() throws CancelException, IOException, IllegalAccessException, InstantiationException, ClassNotFoundException, WalaException {
         String filename = "inter3.py";
         Collection<Module> src = Collections.singleton(new PyScriptModule(
-                TaintAnalysisDemo.class.getClassLoader().getResource(filename)));
+                TaintAnalysis.class.getClassLoader().getResource(filename)));
         PathTraverser pathTraverser=new PathTraverser();
-        new TaintAnalysis().analysis(src,pathTraverser);
+
+        Configuration configuration = new Configuration();
+        configuration.loadPrimitiveConfigs();
+        new TaintAnalysis().analysis(src,configuration,pathTraverser);
 
         assertEquals(pathTraverser.getPaths().size(), 1);
         /*
@@ -116,12 +125,15 @@ public class MyTaintAnalysisTest extends TestCase {
     }
 
     @Test
-    public void testInter4() throws CancelException, IOException, IllegalAccessException, InstantiationException, ClassNotFoundException {
+    public void testInter4() throws CancelException, IOException, IllegalAccessException, InstantiationException, ClassNotFoundException, WalaException {
         String filename = "inter4.py";
         Collection<Module> src = Collections.singleton(new PyScriptModule(
-                TaintAnalysisDemo.class.getClassLoader().getResource(filename)));
+                TaintAnalysis.class.getClassLoader().getResource(filename)));
         PathTraverser pathTraverser=new PathTraverser();
-        new TaintAnalysis().analysis(src,pathTraverser);
+
+        Configuration configuration = new Configuration();
+        configuration.loadPrimitiveConfigs();
+        new TaintAnalysis().analysis(src,configuration,pathTraverser);
 
         assertEquals(pathTraverser.getPaths().size(), 1);
         /*
