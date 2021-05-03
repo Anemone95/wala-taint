@@ -43,12 +43,12 @@ import os
 
 
 def thread(sys, b, c, d, e):
-    sys(b)  # subprocess.call(os.system(result))不行，没有os.system的函数摘要
+    sys(b)
     # return b # return b+1,c
 
 
 def safe(sys, b, c, d, e):
-    print(b)  # subprocess.call(os.system(result))不行，没有os.system的函数摘要
+    print(b)
 
 
 class A:
