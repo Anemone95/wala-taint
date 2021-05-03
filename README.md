@@ -6,7 +6,7 @@ A taint analysis demo using WALA. Although currently it still supports Python, t
 
 # Install
 
-This project needs WALA's python-frontend (see [here](https://github.com/Anemone95/wala-python) for more details) Install it at first.
+This project needs WALA's python-frontend (see [here](https://github.com/Anemone95/wala-python) for more details). Install it at first.
 
 ```bash
 git clone https://github.com/Anemone95/wala-python
@@ -16,7 +16,7 @@ mvn clean install -DskipTests
 
 # Quick Start
 
-Now it still need us write code to config and lunch a analysis (the following code is written in `top.anemone.wala.taintanalysis.TaintAnalysis#main` ):
+Now it still need us write code to config and lunch an analysis (the following code is written in `top.anemone.wala.taintanalysis.TaintAnalysis#main` ):
 
 ```java
 // add scan target
@@ -120,7 +120,7 @@ There are two ways to define source, sink or sanitizer.
        	return walataint.source_func() # request.get() will return a source
    ```
 
-   To write a sink function or field, we can use `walataint.sink_func()`, like this:
+   To write a sink function, we can use `walataint.sink_func()`, like this:
 
    ```python
    import walataint
@@ -153,4 +153,6 @@ python3 -m twine upload dist/*
 2. Global variables can't propagate taint
 3. Taint propagation result may have some bugs -- it will miss some propagation progresses in some `put` and `get` instructions
 4. Time-consuming hasn't been not tested
+5. Web frameworks (i.e., `Flask`,  `Django` ) are not supported. We plan to create a synthetic main.py to support them.
+6.  Decorators are not supported, because python-frontend doesn't support them.
 
