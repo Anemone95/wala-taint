@@ -151,5 +151,6 @@ python3 -m twine upload dist/*
 
 1. Flow-sensitive is not supported when field-sensitive
 2. Global variables can't propagate taint
-3. Taint propagation result may have some bugs -- it will miss some propagation progresses in some `put` and `get` instructions.
+3. Taint propagation result may have some bugs -- it will miss some propagation progresses in some `put` and `get` instructions
+4. Time consuming is not tested
 
