@@ -77,16 +77,16 @@ Vulnerable:
 os.py [4:4] -> [4:30]
 <Code body of function Lscript file:/D:/wala/wala-taint/pylibs/os.py/system>
 <Code body of function Lscript file:/D:/wala/wala-taint/pylibs/os.py/system>
-inter5.py [6:4] -> [6:10]
-<Code body of function Lscript file:/D:/wala/wala-taint/target/test-classes/inter5.py/thread>
-<Code body of function Lscript file:/D:/wala/wala-taint/target/test-classes/inter5.py/thread>
-inter5.py [29:0] -> [29:44]
-inter5.py [19:0] -> [19:14]
-inter5.py [19:0] -> [19:14]
-inter5.py [18:12] -> [18:38]
-inter5.py [18:12] -> [18:24]
-inter5.py [1:0] -> [1:0]
-inter5.py [1:0] -> [1:0]
+demo.py [6:4] -> [6:10]
+<Code body of function Lscript file:/D:/wala/wala-taint/target/test-classes/demo.py/thread>
+<Code body of function Lscript file:/D:/wala/wala-taint/target/test-classes/demo.py/thread>
+demo.py [29:0] -> [29:44]
+demo.py [19:0] -> [19:14]
+demo.py [19:0] -> [19:14]
+demo.py [18:12] -> [18:38]
+demo.py [18:12] -> [18:24]
+demo.py [1:0] -> [1:0]
+demo.py [1:0] -> [1:0]
 flask.py [2:0] -> [3:31]
 flask.py [2:0] -> [3:31]
 ```
