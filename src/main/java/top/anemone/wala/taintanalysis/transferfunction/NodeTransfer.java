@@ -1,5 +1,6 @@
 package top.anemone.wala.taintanalysis.transferfunction;
 
+import com.ibm.wala.cast.ir.ssa.AstGlobalRead;
 import com.ibm.wala.classLoader.CallSiteReference;
 import com.ibm.wala.classLoader.IMethod;
 import com.ibm.wala.fixpoint.BitVectorVariable;
@@ -165,6 +166,7 @@ public class NodeTransfer extends UnaryOperator<BitVectorVariable> {
                     if (x instanceof NormalAllocationInNode) {
                         String classType = ((NormalAllocationInNode) x).getSite().getDeclaredType().getName().toString();
                         String field = fieldReference.getName().toString();
+                        // 命中sink点
                         for (SinkField sinkField : configuration.getSinkFields()) {
                             if ((sinkField.clazz.equals(classType) || classType.endsWith("/" + sinkField.clazz)) &&
                                     sinkField.field.equals(field) &&
@@ -184,7 +186,7 @@ public class NodeTransfer extends UnaryOperator<BitVectorVariable> {
                 }
 
                 // put fieldObj into obj
-                // 如果存在污染传递，标记，但是不能直接依赖fieidobj定义的taintvar，得重新定义新的put
+                // 如果存在污染传递，标记，但是不能直接依赖fieidobj定义的taintvar，得重新定义新的putTaintVar
                 if (rhsTaint != null) {
                     TaintVar putVar = new TaintVar(inst.getUse(1), context, method, inst, TaintVar.Type.PUT);
                     putVar.fields = fieldObj.var.fields;
@@ -202,48 +204,75 @@ public class NodeTransfer extends UnaryOperator<BitVectorVariable> {
                             " had taint in some where. Field is not flow sensitive so not clean, may cause FP");
                 } else {
                     // 无污点，赋值
+                    TaintVar putVar = new TaintVar(inst.getUse(1), context, method, inst, TaintVar.Type.PUT);
+                    putVar.fields = fieldObj.var.fields;
+                    // 污点来自对象里的域
+                    putVar.addPrevStatement(new Statement(fieldObj.var));
                     obj.var.putField(fieldReference, new Statement(fieldObj.var));
                 }
+
                 isHandled = true;
             }
 
             if (instruction instanceof SSAGetInstruction) {
                 SSAGetInstruction inst = (SSAGetInstruction) instruction;
                 FieldReference field = inst.getDeclaredField();
-                IndexedTaintVar obj = getOrCreateTaintVar(inst.getUse(0), instruction, context, method);
-
                 IndexedTaintVar leftVar = getOrCreateTaintVar(instruction.getDef(), instruction, context, method);
                 kill.add(leftVar.index);
-                Utils.GetTaintRet rightTaintVar = Utils.getTaint(obj.var, this.taintVars, rhs);
-                Statement fieldObj = obj.var.getField(field);
-                if (rightTaintVar == null) {
-                    if (fieldObj != null) {
-                        leftVar.var.fields = fieldObj.taintVar.fields; // 获取右侧对象所有域
-                    }
-                } else if (rightTaintVar.fromField == null) {
-                    // 如果目标本身污染，那么其中所有域被污染
-//                    leftVar.var.clearPrevStatements();
-                    leftVar.var.addPrevStatement(new Statement(obj.var));
-                    gen.add(leftVar.index);
-                } else {
-                    // 如果目标未污染，那么其域被污染
-                    boolean objInParam = false;
-                    for (int i = 0; i < method.getNumberOfParameters(); i++) {
-                        if (cgNode.getIR().getSymbolTable().getParameter(i) == obj.var.varNo) {
-                            objInParam = true;
-                            break;
-                        }
-                    }
-                    leftVar.var.clearPrevStatements();
-                    if (objInParam) {
-                        // 目标是函数参数传下来的
-                        leftVar.var.addPrevStatement(new Statement(obj.var));
-                    } else {
-                        leftVar.var.addPrevStatement(rightTaintVar.fromField);
-                    }
-                    gen.add(leftVar.index);
-                }
+                if (inst.getRef() != -1){
+                    IndexedTaintVar obj = getOrCreateTaintVar(inst.getUse(0), instruction, context, method);
 
+                    Utils.GetTaintRet rightTaintVar = Utils.getTaint(obj.var, this.taintVars, rhs);
+                    Statement fieldObj = obj.var.getField(field);
+                    if (rightTaintVar == null) {
+                        if (fieldObj != null) {
+                            leftVar.var.fields = fieldObj.taintVar.fields; // 获取右侧对象所有域
+                        }
+                    } else if (rightTaintVar.fromField == null) {
+                        // 如果目标本身污染，那么其中所有域被污染
+//                    leftVar.var.clearPrevStatements();
+                        leftVar.var.addPrevStatement(new Statement(obj.var));
+                        gen.add(leftVar.index);
+                    } else {
+                        // 如果目标未污染，那么其域被污染
+                        boolean objInParam = false;
+                        for (int i = 0; i < method.getNumberOfParameters(); i++) {
+                            if (cgNode.getIR().getSymbolTable().getParameter(i) == obj.var.varNo) {
+                                objInParam = true;
+                                break;
+                            }
+                        }
+                        leftVar.var.clearPrevStatements();
+                        if (objInParam) {
+                            // 目标是函数参数传下来的
+                            leftVar.var.addPrevStatement(new Statement(obj.var));
+                        } else {
+                            leftVar.var.addPrevStatement(rightTaintVar.fromField);
+                        }
+                        gen.add(leftVar.index);
+                    }
+                } else {
+                    // FIXME 跨应用调用传递全局污点
+                    IndexedTaintVar obj = getOrCreateTaintVar(1, instruction, context, method);
+                    Utils.GetTaintRet rightTaintVar = Utils.getTaint(obj.var, this.taintVars, rhs);
+                    Statement fieldObj = obj.var.getField(field);
+                    if (rightTaintVar == null) {
+                        if (fieldObj != null) {
+                            leftVar.var.fields = fieldObj.taintVar.fields; // 获取右侧对象所有域
+                        }
+                    } else if (rightTaintVar.fromField == null) {
+                        // 如果目标本身污染，那么其中所有域被污染
+//                    leftVar.var.clearPrevStatements();
+                        leftVar.var.addPrevStatement(new Statement(obj.var));
+                        gen.add(leftVar.index);
+                    } else {
+                        // 如果目标未污染，那么其域被污染
+                        boolean objInParam = false;
+                        leftVar.var.clearPrevStatements();
+                        leftVar.var.addPrevStatement(new Statement(rightTaintVar.taintVar));
+                        gen.add(leftVar.index);
+                    }
+                }
                 isHandled = true;
             }
 
@@ -311,6 +340,17 @@ public class NodeTransfer extends UnaryOperator<BitVectorVariable> {
     }
 
     private IndexedTaintVar getOrCreateTaintVar(int var, SSAInstruction instruction, Context context, IMethod method) {
+        if (instruction instanceof AstGlobalRead && var==1){
+            String globalName=((AstGlobalRead)instruction).getGlobalName();
+            String methodName=globalName.replace("global script ","Lscript ");
+            for (int i = 0; i < this.taintVars.getSize(); i++) {
+                TaintVar v=this.taintVars.getMappedObject(i);
+                String pyScriptName=v.method.getReference().getDeclaringClass().getName().toString();
+                if (v.varNo==1 && pyScriptName.equals(methodName) && v.inst==null){
+                    return new IndexedTaintVar(i, v);
+                }
+            }
+        }
         TaintVar taintVar = new TaintVar(var, context, method, instruction, TaintVar.Type.TEMP);
         int idx = this.taintVars.getMappedIndex(taintVar);
         if (idx < 0) {

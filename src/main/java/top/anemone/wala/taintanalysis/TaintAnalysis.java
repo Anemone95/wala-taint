@@ -3,6 +3,7 @@ package top.anemone.wala.taintanalysis;
 import com.ibm.wala.cast.ipa.callgraph.CAstCallGraphUtil;
 import com.ibm.wala.cast.python.client.PythonAnalysisEngine;
 import com.ibm.wala.cast.python.loader.PythonLoaderFactory;
+import com.ibm.wala.cast.python.module.PyLibURLModule;
 import com.ibm.wala.cast.python.module.PyScriptModule;
 import com.ibm.wala.cast.python.util.PythonInterpreter;
 import com.ibm.wala.classLoader.Module;
@@ -26,9 +27,10 @@ import top.anemone.wala.taintanalysis.result.PrintTraverser;
 import top.anemone.wala.taintanalysis.result.TaintGraphTraverser;
 import top.anemone.wala.taintanalysis.transferfunction.TaintTransferFunctions;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.HashSet;
 
 public class TaintAnalysis {
     public void analysis(Collection<Module> src, Configuration configuration, TaintGraphTraverser resultProcessor) throws CancelException, IOException, ClassNotFoundException, IllegalAccessException, InstantiationException, WalaException {
@@ -61,9 +63,12 @@ public class TaintAnalysis {
 
     public static void main(String[] args) throws ClassNotFoundException, CancelException, InstantiationException, IllegalAccessException, IOException, WalaException {
         String filename = "demo.py";
-        Collection<Module> src = Collections.singleton(new PyScriptModule(
-                TaintAnalysis.class.getClassLoader().getResource(filename)));
-        Configuration configuration = new Configuration(false);
+        Collection<Module> src = new HashSet<>();
+        src.add(new PyScriptModule(TaintAnalysis.class.getClassLoader().getResource(filename)));
+        for (File f: Utils.getLibsFromDir("pylibs")){
+            src.add(new PyLibURLModule(f));
+        }
+        Configuration configuration = new Configuration(true);
         configuration.loadPrimitiveConfigs();
         new TaintAnalysis().analysis(src, configuration, new PrintTraverser());
     }

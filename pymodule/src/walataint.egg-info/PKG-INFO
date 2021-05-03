@@ -1,0 +1,12 @@
+Metadata-Version: 2.1
+Name: walataint
+Version: 0.0.2
+Summary: Primitive package for walataint
+Home-page: https://github.com/Anemone95/wala-taint/
+Author: anemone
+Author-email: anemone95@qq.com
+License: UNKNOWN
+Description: # WALA-Taint Python 
+        This package provides wata-taint primitives for writing function summaries.
+Platform: UNKNOWN
+Description-Content-Type: text/markdown

@@ -95,7 +95,7 @@
             </class>
             <class name="sink_func" allocatable="true">
                 <method name="do" descriptor="()LRoot;" numArgs="2" paramNames="self value">
-                    <return value="value"/>
+                    <return value="self"/>
                 </method>
             </class>
             <class name="sanitizer" allocatable="true">

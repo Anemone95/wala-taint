@@ -1,6 +1,6 @@
-import subprocess
-from flask import Flask, render_template, request
+from flask import request
 import os
+
 
 # class oos:
 #     def get(self, *args):
@@ -14,6 +14,6 @@ class A:
         self.b=None
 
 req_param = request.form['suggestion']
-func=os.system
+func= os.system
 thread(func,req_param, "c", "d", "e")
 # ret=thread(system, req_param, "c", "d", "e") # subprocess.call(os.system(result))不行，没有os.system的函数摘要

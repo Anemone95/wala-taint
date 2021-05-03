@@ -66,7 +66,7 @@ public class EdgeTransfer extends UnaryOperator<BitVectorVariable> {
                 return BitVectorIdentity.instance().evaluate(lhs, rhs);
             }
             int offset = 0;
-            if (numPara != numMethodPara) {
+            if (numPara == numMethodPara+1) {
                 offset = 1;
             }
             for (int i = 0; i < numMethodPara; i++) {

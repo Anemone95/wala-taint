@@ -1,6 +1,6 @@
-import subprocess
-from flask import Flask, render_template, request
+from flask import request
 import os
+
 
 # class oos:
 #     def get(self, *args):

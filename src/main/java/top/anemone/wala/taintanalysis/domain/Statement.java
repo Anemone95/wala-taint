@@ -6,6 +6,16 @@ import com.ibm.wala.ssa.SSAInstruction;
 import java.util.Objects;
 
 public class Statement {
+    @Override
+    public String toString() {
+        return "Statement{" +
+                "method=" + method +
+                ", type=" + type +
+                ", taintVar=" + taintVar +
+                ", ssaInstruction=" + ssaInstruction +
+                '}';
+    }
+
     public final IMethod method;
     public final TaintVar.Type type;
     public TaintVar taintVar;

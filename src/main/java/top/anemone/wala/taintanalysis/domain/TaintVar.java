@@ -23,6 +23,7 @@ public class TaintVar {
     }
 
     public void addPrevStatement(Statement prevStatement) {
+//        System.err.println(prevStatement+" -> "+this);
         this.prevStatements.add(prevStatement);
     }
 
@@ -47,6 +48,9 @@ public class TaintVar {
         TaintVar taintVar = (TaintVar) o;
         return varNo == taintVar.varNo &&
                 Objects.equals(context, taintVar.context) && Objects.equals(method, taintVar.method) ;
+//        // 上下文导致跨文件的污点找不到
+//        return varNo == taintVar.varNo;
+
     }
 
     public Statement getField(FieldReference f) {
@@ -60,6 +64,7 @@ public class TaintVar {
     @Override
     public int hashCode() {
         return Objects.hash(context, varNo, method);
+//        return Objects.hash(varNo);
     }
 
     public TaintVar(int varNo, Context context, IMethod method, SSAInstruction defInst) {
