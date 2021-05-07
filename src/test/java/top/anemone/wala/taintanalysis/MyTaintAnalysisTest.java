@@ -82,7 +82,7 @@ public class MyTaintAnalysisTest extends TestCase {
         inter1.py [17:0] -> [17:3]
         inter1.py [15:12] -> [15:38]
          */
-        assertTrue(11> pathTraverser.getPaths().get(0).size()-1 );
+        assertTrue(11<pathTraverser.getPaths().get(0).size()-1 );
     }
 
     @Test

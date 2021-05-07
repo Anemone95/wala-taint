@@ -154,5 +154,39 @@ python3 -m twine upload dist/*
 3. Taint propagation result may have some bugs -- it will miss some propagation progresses in some `put` and `get` instructions
 4. Time-consuming hasn't been not tested
 5. Web frameworks (i.e., `Flask`,  `Django` ) are not supported. We plan to create a synthetic main.py to support them.
-6.  Decorators are not supported, because python-frontend doesn't support them.
+6. Decorators are not supported, because python-frontend doesn't support them.
+7. File field not completely support, e.g.,
+    a.py:
+    ```python
+    class A:
+        field=source()
+    ```
+    b.py:
+    ```python
+    import a
+    sink(A.field)
+    ```
+    If the importing order is <a.py, b.py>, the taint could propagate.
+     While the order is <b.py, a.py>, the taint can't propagate because of the work list of the dataflow analysis.
+     More specifically, wala-python's entrance is always at `synthetic < PythonLoader, Lcom/ibm/wala/FakeRootClass, fakeRootMethod()V >`,
+     When `a.py/A/field` is tainted, dataflow framework will add its succeed block into worklist.
+     In former order, the succeed blocks contains `b.py`, but in later order, `a.py` has no succeeds:
+     ```java
+     Instructions:
+     BB0
+     0   invokestatic < PythonLoader, Lcom/ibm/wala/FakeRootClass, fakeWorldClinit()V > @0 exception:v2
+     BB1
+     1   v3 = new <PythonLoader,Lscript file:/Users/xuwenyuan/workspace/wala/wala-taint/pylibs/flask.py>@1
+     BB2
+     2   v4 = invokevirtual < PythonLoader, Lscript file:/Users/xuwenyuan/workspace/wala/wala-taint/pylibs/flask.py, do()LRoot; > v3 @2 exception:v5
+     BB3
+     3   v6 = new <PythonLoader,Lscript file:/Users/xuwenyuan/workspace/wala/wala-taint/pylibs/os.py>@3
+     BB4
+     4   v7 = invokevirtual < PythonLoader, Lscript file:/Users/xuwenyuan/workspace/wala/wala-taint/pylibs/os.py, do()LRoot; > v6 @4 exception:v8
+     BB5
+     5   v9 = new <PythonLoader,Lscript file:/Users/xuwenyuan/workspace/wala/wala-taint/target/test-classes/inter1.py>@5
+     BB6
+     6   v10 = invokevirtual < PythonLoader, Lscript file:/Users/xuwenyuan/workspace/wala/wala-taint/target/test-classes/inter1.py, do()LRoot; > v9 @6 exception:v11
+     BB7
+     ```
 
