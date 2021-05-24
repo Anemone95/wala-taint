@@ -10,7 +10,7 @@
 
     <properties>
         <wala.version>1.5.5</wala.version>
-        <wala-python.version>1.3.6-SNAPSHOT</wala-python.version>
+        <wala-python.version>1.3.7-SNAPSHOT</wala-python.version>
     </properties>
     <dependencies>
         <dependency>

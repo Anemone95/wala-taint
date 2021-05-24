@@ -1,6 +1,5 @@
 from flask import request
-import os
+import subprocess
 
-src=request.form["suggest"]
-b=src+"A"
-os.system(b)
+src=request.form
+p = subprocess.Popen(src, a="A",b="B",c="C")
